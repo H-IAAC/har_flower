@@ -47,9 +47,10 @@ class MLPMultilabel:
         
 
 class DataProcessingExtrasensory:
-    def __init__(self, x, y) -> None:
-        self.x = x
-        self.y = y
+    def __init__(self, raw, x=None, y=None, labels=None) -> None:
+        self.x, self.y = self.get_x_y_from_raw(raw)
+        if labels is not None:
+            self.y = self.select_labels(self.y, labels)
         self.x_train, self.x_test, self.y_train, self.y_test = self.split_train_test()
     
     def split_train_test(self, test_size=0.25):
@@ -81,6 +82,17 @@ class DataProcessingExtrasensory:
     
     def select_labels(self, y, labels : list):
         return y[labels]
+
+
+class HAR:
+    def __init__(self) -> None:
+        pass
+
+    def make_mlp(self):
+        pass
+
+    def load_data(self):
+        pass
 
 
 def avg_multilabel_BA(y_true, y_pred):
