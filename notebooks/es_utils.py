@@ -1,3 +1,4 @@
+from cProfile import label
 import numpy  as np
 import pandas as pd
 import tensorflow as tf
@@ -62,12 +63,10 @@ class DataProcessingExtrasensory:
         x_train.to_numpy().reshape(input_shape[0], input_shape[1])
         x_train = pd.DataFrame(min_max_scaler.fit_transform(x_train))
         
-        #y_train = tf.strings.to_number(y_train).numpy().astype(np.int32)
-        num_classes = y_train.shape[1] #(max(y_train)+1)
+        num_classes = y_train.shape[1]
         y_train = to_categorical(y_train, num_classes=num_classes)
 
         x_test = pd.DataFrame(min_max_scaler.transform(x_test))
-        #y_test = tf.strings.to_number(y_test).numpy().astype(np.int32)
         y_test = to_categorical(y_test,num_classes = num_classes)
 
         return x_train, x_test, y_train, y_test
@@ -75,9 +74,7 @@ class DataProcessingExtrasensory:
 
     def get_x_y_from_raw(self, raw):
         x = raw[raw.columns.drop(raw.filter(regex='label:'))]
-        #x.drop(columns=['multi_label', 'main_label'], inplace=True)
         y = raw.filter(regex='label:')
-        #y = y[['label:SITTING', 'label:LYING_DOWN','label:OR_standing', 'label:FIX_walking']]
         return x, y
     
     def select_labels(self, y, labels : list):
@@ -85,13 +82,27 @@ class DataProcessingExtrasensory:
 
 
 class HAR:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, config : dict) -> None:
+        self.config = config
+        # TODO: checar se todos os parâmetros tão aqui ou inicializar
+        labels= ['label:SITTING', 'label:LYING_DOWN','label:OR_standing', 'label:FIX_walking']
+        self.data= DataProcessingExtrasensory(self.dummy_load(), labels=labels)
+        self.mlp = self.make_mlp(self.data.x_train.shape[1], self.data.y_train.shape[1])
 
-    def make_mlp(self):
-        pass
+
+
+    def make_mlp(self, input_dim, num_classes):
+        return MLPMultilabel(input_dim, num_classes)
 
     def load_data(self):
+        pass
+
+    def dummy_load(self):
+        return pd.read_csv('../input/user1.features_labels.csv')#.dropna() #TODO: attention
+
+    def dummy_test(self):
+        self.mlp.train(self.data.x_train, self.data.y_train)
+        self.mlp.evaluate(self.data.x_test, self.data.y_test)
         pass
 
 
