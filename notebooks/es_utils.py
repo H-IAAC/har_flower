@@ -25,7 +25,8 @@ class MLPMultilabel:
         ba = self.test_BA(x_test_norm, y_test)
         print(f'Test results - Loss: {test_results[0]} - Accuracy: {test_results[1]}%')
         print(f'Averaged Balanced Accuracy: {ba:.6f}')
-        return test_results, ba
+        
+        return test_results
 
     def predict(self, x):
         return self.model.predict(x)
