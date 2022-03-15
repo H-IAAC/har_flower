@@ -93,6 +93,7 @@ class HAR:
     def __init__(self, config : dict) -> None:
         self.config = {
             'df_path': None,
+            'df': None,
             'neurons_1' : 16, 
             'neurons_2' : None, 
             'l2' : 0.01,
@@ -103,7 +104,10 @@ class HAR:
             self.config[key] = config[key]
         # TODO: checar se todos os parâmetros tão aqui ou inicializar
         
-        self.data= DataProcessingExtrasensory(self.load(self.config['df_path']), labels=self.config['labels']) #TODO: attention
+        if self.config['df'] is None:
+            self.data= DataProcessingExtrasensory(self.load(self.config['df_path']), labels=self.config['labels']) #TODO: attention
+        else:
+            self.data= DataProcessingExtrasensory(self.config['df'], labels=self.config['labels']) #TODO: attention
         self.mlp = self.make_mlp(
             self.data.x_train.shape[1], 
             self.data.y_train.shape[1], 
