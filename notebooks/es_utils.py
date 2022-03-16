@@ -12,6 +12,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 #from skmultilearn.model_selection import iterative_train_test_split
 
+import glob
+
 
 class MLPMultilabel:
     def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
@@ -153,6 +155,18 @@ def testar():
     har.dummy_test()
 
 
+def get_all_user_csvs(folderpath : str):
+    for filename in glob.iglob(f'{folderpath}/**', recursive=True):
+        print(filename)
+        filename.split(folderpath)[1].split('.features')
+        #with open(filename, 'r+') as json_data:  # abrir o fields
+        #    results.append(json.load(json_data))
+
+
+def create_k_folds_n_users():
+    pass
+
 if __name__ == '__main__':
     pass
+    get_all_user_ids('/home/wander/OtherProjects/har_flower/sample_data')
     #testar()
