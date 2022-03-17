@@ -16,6 +16,7 @@ import glob
 import json
 import random
 from functools import partial
+import os
 
 class MLPMultilabel:
     def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
@@ -315,8 +316,34 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
 
             #fold_df_test = fold_df_test.append(pd.read_csv(csv))
         #print(fold_list_test)
-        with open(f'fold_{i}_test_cvs.json', 'w+') as json_data:  # abrir o fields
-            json.dump(fold_list_test, json_data)
+        
+        # Path
+        path_exp = os.path.join(folderpath, f'exp_/fold_{i}')
+        try:
+            os.mkdir(path_exp)
+        except FileExistsError as e:
+            pass
+
+        for test_user in fold_list_test:
+            user_id = test_user.split('.features_labels.csv')[0]
+
+            path_user = os.path.join(path_exp, f'{user_id}')
+            try:
+                os.mkdir(path_user)
+            except FileExistsError as e:
+                pass
+
+            raw = pd.read_csv(os.path.join(folderpath, test_user)).fillna(0.0)
+            x = raw[raw.columns.drop(raw.filter(regex='label:'))]
+            y = raw.filter(regex='label:')
+            x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
+            x_train.to_csv(f'{path_user}/x_train.csv')
+            x_test.to_csv(f'{path_user}/x_test.csv')
+            y_train.to_csv(f'{path_user}/y_train.csv')
+            y_test.to_csv(f'{path_user}/y_test.csv')
+    
+        #with open(f'fold_{i}_test_cvs.json', 'w+') as json_data:  # abrir o fields
+        #    json.dump(fold_list_test, json_data)
         #    results.append(json.load(json_data)) 
         #pessima ideia --> muito espaço em disco
         #fold_df_train.to_csv(f'fold_{i}_train.csv')
