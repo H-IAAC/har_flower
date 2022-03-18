@@ -1,40 +1,51 @@
 from cProfile import label
-import numpy  as np
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
-#from tensorflow.keras.utils import to_categorical
 
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-#from skmultilearn.model_selection import iterative_train_test_split
 
 import glob
 
 
 class MLPMultilabel:
-    def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
-        self.model  = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+    def __init__(self):
+        self.base_model = None
+        self.head_model = None
 
-    def train(self, x_train_norm, y_train):
-        self.model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
+    def set_base_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
+        self.base_model = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
 
-    def evaluate(self, x_test_norm, y_test):
-        test_results = self.model.evaluate(x_test_norm, y_test, verbose=1)
-        ba = self.test_BA(x_test_norm, y_test)
+    def set_head_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
+        self.head_model = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+
+    def get_base_model(self) -> Sequential:
+        return self.base_model
+
+    def get_head_model(self) -> Sequential:
+        return self.head_model
+
+    def train(self, model, x_train_norm, y_train):
+        model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
+
+    def evaluate(self, model, x_test_norm, y_test):
+        test_results = model.evaluate(x_test_norm, y_test, verbose=1)
+        ba = self.test_BA(model, x_test_norm, y_test)
         print(f'Test results - Loss: {test_results[0]} - Accuracy: {test_results[1]}%')
         print(f'Averaged Balanced Accuracy: {ba:.6f}')
         
         return test_results
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.base_model.predict(x)
 
-    def test_BA(self, x_test_norm, y_test):
-        y_pred = self.model.predict(x_test_norm)
+    def test_BA(self, model, x_test_norm, y_test):
+        y_pred = model.predict(x_test_norm)
         return avg_multilabel_BA(y_test, y_pred)
 
     def build_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> Sequential:
@@ -44,12 +55,11 @@ class MLPMultilabel:
             model.add(Dense(neurons_2, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
 
-        # Configure the model and start training
+        # Configure the model
         sgd = tf.keras.optimizers.SGD(learning_rate=0.1, decay=1e-2, momentum=0.5)
         model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
         return model
         
-
 class DataProcessingExtrasensory:
     def __init__(self, raw: pd.DataFrame, x=None, y=None, labels=None, dropna=True) -> None:
         raw = raw.dropna(subset=labels)
@@ -92,6 +102,8 @@ class DataProcessingExtrasensory:
 
 
 class HAR:
+    mlp = MLPMultilabel()
+    
     def __init__(self, config : dict) -> None:
         self.config = {
             'df_path': None,
@@ -110,33 +122,43 @@ class HAR:
             self.data= DataProcessingExtrasensory(self.load(self.config['df_path']), labels=self.config['labels']) #TODO: attention
         else:
             self.data= DataProcessingExtrasensory(self.config['df'], labels=self.config['labels']) #TODO: attention
-        self.mlp = self.make_mlp(
+            
+        self.base_model = self.make_base_model(
             self.data.x_train.shape[1], 
             self.data.y_train.shape[1], 
             neurons_1=self.config['neurons_1'], 
             neurons_2=self.config['neurons_2'], 
             l2=self.config['l2'])
 
+        self.head_model = self.make_head_model(
+            self.data.x_train.shape[1], 
+            self.data.y_train.shape[1], 
+            neurons_1=int(self.config['neurons_1'] / 2),
+            neurons_2=self.config['neurons_2'], 
+            l2=self.config['l2'])
 
-
-    def make_mlp(self, input_dim, num_classes, neurons_1, neurons_2, l2):
-        return MLPMultilabel(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
-
+    def make_base_model(self, input_dim, num_classes, neurons_1, neurons_2, l2):
+        self.mlp.set_base_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+        return self.mlp.get_base_model()
+        
+    def make_head_model(self, input_dim, num_classes, neurons_1, neurons_2, l2):
+        self.mlp.set_head_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+        return self.mlp.get_head_model()
+        
     def load_data(self):
         pass
 
     def load(self, df_path):
-        #return pd.read_csv('../input/user1.features_labels.csv')#.dropna()
         return pd.read_csv(df_path)
 
     def dummy_test(self):
-        self.mlp.train(self.data.x_train, self.data.y_train)
-        self.mlp.evaluate(self.data.x_test, self.data.y_test)
+        self.mlp.train(self.base_model, self.data.x_train, self.data.y_train)
+        self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
         
     def evaluate(self):
-        self.mlp.evaluate(self.data.x_test, self.data.y_test)
+        self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
 
-
+        
 def avg_multilabel_BA(y_true, y_pred):
     ba_array = []
     print(y_pred.shape[1])
