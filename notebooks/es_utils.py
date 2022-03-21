@@ -6,22 +6,28 @@ from functools import partial
 
 import numpy  as np
 import pandas as pd
+from sklearn.utils import shuffle
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from tensorflow import math
+from tensorflow import where, stack, zeros_like, boolean_mask
+from tensorflow.keras.backend import any 
 import keras_tuner as kt
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.regularizers import l2
+from tensorflow.keras.losses import BinaryCrossentropy
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-
+from sklearn.impute import SimpleImputer
+from skmultilearn.model_selection import iterative_train_test_split
 
 class MLPMultilabel:
-    def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
-        self.model  = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+    def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2_val=0.01) -> None:
+        self.model  = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2_val)
 
     def train(self, x_train_norm, y_train):
         self.model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
@@ -41,16 +47,17 @@ class MLPMultilabel:
         y_pred = self.model.predict(x_test_norm)
         return avg_multilabel_BA(y_test, y_pred)
 
-    def build_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> Sequential:
+    def build_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2_val=0.01) -> Sequential:
         model = Sequential()
-        model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', activity_regularizer=l2(l2)))
+        model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', activity_regularizer=l2(l2_val)))
         if neurons_2 is not None:
             model.add(Dense(neurons_2, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
 
         # Configure the model and start training
         sgd = SGD(learning_rate=0.1, decay=1e-2, momentum=0.5)
-        model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+        #model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+        model.compile(loss=nan_bce, optimizer=sgd, metrics=['categorical_accuracy'])
         return model
 
     
@@ -65,12 +72,12 @@ class MLPMultilabel:
                      project_name='experimento_1')
         stop_early = EarlyStopping(monitor='val_loss', patience=5)
 
-        tuner.search(x_train_norm, y_train, epochs=50, validation_split=0.2, callbacks=[stop_early])
+        tuner.search(x_train_norm, y_train, epochs=100, validation_split=0.2, callbacks=[stop_early])
         # Get the optimal hyperparameters
         best_hps=tuner.get_best_hyperparameters(num_trials=1)[0]
 
         model = tuner.hypermodel.build(best_hps)
-        history = model.fit(x_train_norm, y_train, epochs=50, validation_split=0.2)
+        history = model.fit(x_train_norm, y_train, epochs=100, batch_size=50, shuffle=True, validation_split=0.2)
 
         val_acc_per_epoch = history.history['val_categorical_accuracy']
         best_epoch = val_acc_per_epoch.index(max(val_acc_per_epoch)) + 1
@@ -78,7 +85,7 @@ class MLPMultilabel:
 
         hypermodel = tuner.hypermodel.build(best_hps)
         # Retrain the model
-        hypermodel.fit(x_train_norm, y_train, epochs=best_epoch, batch_size=10, validation_split=0.2)
+        hypermodel.fit(x_train_norm, y_train, epochs=best_epoch, batch_size=50, shuffle=True, validation_split=0.2)
 
         self.model = hypermodel
         return hypermodel, best_hps, best_epoch
@@ -106,21 +113,23 @@ class MLPMultilabel:
 
         # Configure the model and start training
         sgd = SGD(learning_rate=hp_learning_rate, decay=1e-2, momentum=hp_momentum)
-        model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+        #model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+        model.compile(loss=nan_bce, optimizer=sgd, metrics=['categorical_accuracy'])
         return model
 
 
 ## -------------------------------        
 class DataProcessingExtrasensory:
     def __init__(self, raw: pd.DataFrame, x=None, y=None, labels=None, dropna=True) -> None:
-        raw = raw.dropna(subset=labels)
+        #raw = raw.dropna(subset=labels)
         self.x, self.y = self.get_x_y_from_raw(raw)
         if labels is not None:
             self.y = self.select_labels(self.y, labels)
         self.x_train, self.x_test, self.y_train, self.y_test = self.split_train_test()
     
     def split_train_test(self, test_size=0.25):
-        x_train, x_test, y_train, y_test = train_test_split(self.x, self.y, test_size=test_size, random_state=42)
+        x_train, y_train, x_test, y_test = iterative_train_test_split(self.x, self.y, test_size = test_size)
+        #x_train, x_test, y_train, y_test = train_test_split(self.x, self.y, test_size=test_size, random_state=42)
 
         min_max_scaler = preprocessing.MinMaxScaler()
         input_shape = x_train.shape
@@ -135,9 +144,12 @@ class DataProcessingExtrasensory:
 
 
     def get_x_y_from_raw(self, raw):
-        raw = self.treat_missing(raw) #TODO: attention
+        #raw = self.treat_missing(raw) #TODO: attention
+        #raw = raw.fillna(0.0)
         x = raw[raw.columns.drop(raw.filter(regex='label:'))]
         y = raw.filter(regex='label:')
+        x = self.treat_missing(x)
+        #y = y.fillna(0) #TODO: erase
         return x, y
     
     def select_labels(self, y, labels : list):
@@ -145,6 +157,9 @@ class DataProcessingExtrasensory:
 
     def treat_missing(self, data: pd.DataFrame):
         #default
+        ##imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+        ##return imputer.fit_transform(data)
+        #return data.fillna(data.median())
         return data.fillna(0.0)
 
 
@@ -176,14 +191,14 @@ class HAR:
                 self.data.y_train.shape[1], 
                 neurons_1=self.config['neurons_1'], 
                 neurons_2=self.config['neurons_2'], 
-                l2=self.config['l2'])
+                l2_val=self.config['l2'])
         
         else:
             self.hypertunning()
 
 
-    def make_mlp(self, input_dim, num_classes, neurons_1, neurons_2, l2):
-        return MLPMultilabel(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+    def make_mlp(self, input_dim, num_classes, neurons_1, neurons_2, l2_val):
+        return MLPMultilabel(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2_val)
 
     def load_data(self):
         pass
@@ -207,17 +222,75 @@ class HAR:
 
 
 ## ------------------------- Functions not in a class-----------------------------------------------
-def avg_multilabel_BA(y_true, y_pred):
+def avg_multilabel_BA(y_truei, y_predi):
     ba_array = []
-    print(y_pred.shape[1])
-    for i in range(y_pred.shape[1]):
-        report = classification_report(y_true.to_numpy()[:, i], (y_pred[:, i] > 0.5), output_dict=True, zero_division=0)
-        sensitivity = report['1.0']['recall'] # tp / (tp + fn)
-        specificity = report['0.0']['recall'] #specificity = tn / (tn+fp)
+    
+
+    for i in range(y_predi.shape[1]):
+        #y_true, y_pred = remove_nans_np(y_truei, y_predi)
+        try:
+            y_true, y_pred = remove_nans_np(y_truei.to_numpy()[:, i], y_predi[:, i])
+            report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
+        except:
+            y_true, y_pred = remove_nans_np(y_truei[:, i], y_predi[:, i])
+            report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
+        #sensitivity = report['1.0']['recall'] # tp / (tp + fn)
+        try:
+            specificity = report['0.0']['recall'] #specificity = tn / (tn+fp)
+        except:
+            specificity = 1
+        try:
+            sensitivity = report['1.0']['recall'] # tp / (tp + fn)
+        except:
+            sensitivity = specificity # tp / (tp + fn)
         ba = 0.5*(specificity+sensitivity)
         ba_array.append(ba)
     return np.mean(ba_array)
 
+
+def remove_nans_np(x, y):
+    mask = ~np.isnan(x) & ~np.isnan(y)
+    #mask = math.logical_and(math.logical_not(math.is_nan(x)), math.logical_not(math.is_nan(y)))
+    
+    marra = np.ma.MaskedArray(x, mask=~mask)
+    marrb = np.ma.MaskedArray(y, mask=~mask)
+    #print(marrb.shape)
+    #print(marrb)
+
+    #stacked = stack((math.is_nan(marra), 
+    #                  math.is_nan(marrb)),
+    #                 axis=1)
+    #is_nans = any(stacked, axis=1)
+    #per_instance =  where(is_nans,
+    #                        zeros_like(y),
+    #                        tf.square(tf.subtract(y_predicted, y_actual)))
+
+    return np.ma.compressed(marra), np.ma.compressed(marrb) #np.ma.compressed(marra).reshape(-1, x.shape[1]), np.ma.compressed(marrb).reshape(-1, x.shape[1])
+
+def remove_nans(x, y):
+    #mask = ~np.isnan(x) & ~np.isnan(y)
+    mask = math.logical_and(math.logical_not(math.is_nan(x)), math.logical_not(math.is_nan(y)))
+    
+    marra = boolean_mask(x, mask) #np.ma.MaskedArray(a, mask=~mask)
+    marrb = boolean_mask(y, mask) #np.ma.MaskedArray(b, mask=~mask)
+
+    return marra, marrb #np.ma.compressed(marra), np.ma.compressed(marrb)
+
+
+def nan_bce(y_actual, y_predicted):
+    bce = BinaryCrossentropy(from_logits=True)
+    y_predicted_masked, y_actual_masked = remove_nans(y_predicted, y_actual)
+    #entropy = bce(y_predicted_masked, y_actual_masked)
+
+    #stacked = stack((math.is_nan(y_actual), 
+    #                  math.is_nan(y_predicted)),
+    #                 axis=1)
+    #is_nans = any(stacked, axis=1)
+    #per_instance = where(is_nans,
+                            #zeros_like(y_actual),
+                            #square(subtract(y_predicted, y_actual)))
+
+    return bce(y_predicted_masked, y_actual_masked)
 
 def get_all_user_csvs(folderpath : str):
     answer = []
@@ -257,17 +330,31 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
             raw = pd.read_csv(os.path.join(folderpath, test_user)).fillna(0.0)
             x = raw[raw.columns.drop(raw.filter(regex='label:'))]
             y = raw.filter(regex='label:')
-            x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
+            #x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
+            x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, test_size =0.2)
             x_train.to_csv(f'{path_user}/x_train.csv')
             x_test.to_csv(f'{path_user}/x_test.csv')
             y_train.to_csv(f'{path_user}/y_train.csv')
             y_test.to_csv(f'{path_user}/y_test.csv')
-    
-        all_dfs[f'fold_{i}'] = {'train': fold_df_train}#, 'test': fold_df_test}
+
+        fold_df_train.to_csv(f'{path_exp}/raw_40.csv')
+        #salvo os paths
+        all_dfs[f'fold_{i}'] = {'40': f'{path_exp}/raw_40.csv'} #{'train': fold_df_train}#, 'test': fold_df_test}
 
     return all_dfs
 
 if __name__ == '__main__':
     #a = create_k_folds_n_users(5, 3, '/home/wander/OtherProjects/har_flower/sample_data')
+    config = {
+        #'df_path': '/home/wander/OtherProjects/har_flower/input/user1.features_labels.csv',
+        #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv',
+        'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        #'labels': labels
+}
+    
+    har = HAR(config)
+    har.run()
     pass
     
