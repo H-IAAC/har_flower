@@ -9,7 +9,7 @@ import pandas as pd
 from sklearn.utils import shuffle
 
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Dropout
 from tensorflow import math
 from tensorflow import where, stack, zeros_like, boolean_mask
 from tensorflow.keras.backend import any 
@@ -23,7 +23,8 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.impute import SimpleImputer
-from skmultilearn.model_selection import iterative_train_test_split
+#from skmultilearn.model_selection import iterative_train_test_split
+from skmultilearn.model_selection import IterativeStratification
 
 class MLPMultilabel:
     def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2_val=0.01) -> None:
@@ -49,9 +50,11 @@ class MLPMultilabel:
 
     def build_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2_val=0.01) -> Sequential:
         model = Sequential()
+        
         model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', activity_regularizer=l2(l2_val)))
         if neurons_2 is not None:
             model.add(Dense(neurons_2, activation='relu'))
+        #model.add(Dropout(.2))
         model.add(Dense(num_classes, activation='softmax'))
 
         # Configure the model and start training
@@ -125,9 +128,9 @@ class DataProcessingExtrasensory:
         self.x, self.y = self.get_x_y_from_raw(raw)
         if labels is not None:
             self.y = self.select_labels(self.y, labels)
-        self.x_train, self.x_test, self.y_train, self.y_test = self.split_train_test()
+        self.x_train, self.x_test, self.y_train, self.y_test = self.iterative_split_train_test() #self.split_train_test()
     
-    def split_train_test(self, test_size=0.25):
+    def split_train_test(self, test_size=0.20):
         x_train, y_train, x_test, y_test = iterative_train_test_split(self.x, self.y, test_size = test_size)
         #x_train, x_test, y_train, y_test = train_test_split(self.x, self.y, test_size=test_size, random_state=42)
 
@@ -141,6 +144,18 @@ class DataProcessingExtrasensory:
         x_test = pd.DataFrame(min_max_scaler.transform(x_test))
 
         return x_train, x_test, y_train, y_test
+
+    def iterative_split_train_test(self, train_size=0.8):
+        """Custom iterative train test split which
+        'maintains balanced representation with respect
+        to order-th label combinations.'
+        """
+        stratifier = IterativeStratification(
+            n_splits=2, order=1, sample_distribution_per_fold=[1.0-train_size, train_size, ])
+        train_indices, test_indices = next(stratifier.split(self.x, self.y))
+        X_train, y_train = self.x.iloc[train_indices], self.y.iloc[train_indices]
+        X_test, y_test = self.x.iloc[test_indices], self.y.iloc[test_indices]
+        return X_train, X_test, y_train, y_test
 
 
     def get_x_y_from_raw(self, raw):
@@ -299,6 +314,18 @@ def get_all_user_csvs(folderpath : str):
     return answer
 
 
+def iterative_train_test_split(X, y, train_size):
+    """Custom iterative train test split which
+    'maintains balanced representation with respect
+    to order-th label combinations.'
+    """
+    stratifier = IterativeStratification(
+        n_splits=2, order=1, sample_distribution_per_fold=[1.0-train_size, train_size, ])
+    train_indices, test_indices = next(stratifier.split(X, y))
+    X_train, y_train = X.iloc[train_indices], y.iloc[train_indices]
+    X_test, y_test = X.iloc[test_indices], y.iloc[test_indices]
+    return X_train, X_test, y_train, y_test
+
 def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
     all_csvs = get_all_user_csvs(folderpath)
     all_dfs = {}
@@ -331,7 +358,8 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
             x = raw[raw.columns.drop(raw.filter(regex='label:'))]
             y = raw.filter(regex='label:')
             #x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
-            x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, test_size =0.2)
+            #x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, test_size =0.2)
+            x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, train_size =0.8)
             x_train.to_csv(f'{path_user}/x_train.csv')
             x_test.to_csv(f'{path_user}/x_test.csv')
             y_train.to_csv(f'{path_user}/y_train.csv')
