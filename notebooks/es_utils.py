@@ -10,14 +10,16 @@ from sklearn.utils import shuffle
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.initializers import GlorotNormal
 from tensorflow import math
 from tensorflow import where, stack, zeros_like, boolean_mask
 from tensorflow.keras.backend import any 
 import keras_tuner as kt
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.losses import BinaryCrossentropy
+from tensorflow.keras.losses import BinaryCrossentropy, CategoricalCrossentropy
+from tensorflow.keras.metrics import AUC, TruePositives, TrueNegatives, FalseNegatives, FalsePositives
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
@@ -25,9 +27,16 @@ from sklearn.metrics import classification_report
 from sklearn.impute import SimpleImputer
 #from skmultilearn.model_selection import iterative_train_test_split
 from skmultilearn.model_selection import IterativeStratification
+from sklearn.model_selection import KFold
+
+
+tp = TruePositives()
+tn = TrueNegatives()
+fp = FalsePositives()
+fn = FalseNegatives()
 
 class MLPMultilabel:
-    def __init__(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2_val=0.01) -> None:
+    def __init__(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> None:
         self.model  = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2_val)
 
     def train(self, x_train_norm, y_train):
@@ -36,7 +45,7 @@ class MLPMultilabel:
     def evaluate(self, x_test_norm, y_test):
         test_results = self.model.evaluate(x_test_norm, y_test, verbose=1)
         ba = self.test_BA(x_test_norm, y_test)
-        print(f'Test results - Loss: {test_results[0]} - Accuracy: {test_results[1]}%')
+        print(f'Test results - Loss: {test_results[0]} - Averaged Balanced Accuracy: {test_results[1]}%')
         print(f'Averaged Balanced Accuracy: {ba:.6f}')
         
         return test_results, ba
@@ -46,21 +55,23 @@ class MLPMultilabel:
 
     def test_BA(self, x_test_norm, y_test):
         y_pred = self.model.predict(x_test_norm)
-        return avg_multilabel_BA(y_test, y_pred)
+        return avg_multilabel_BA_2(y_test, y_pred)
 
-    def build_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2_val=0.01) -> Sequential:
+    def build_model(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> Sequential:
         model = Sequential()
-        
-        model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', activity_regularizer=l2(l2_val)))
+        initializer = GlorotNormal()
+        model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
+        #model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', activity_regularizer=l2(l2_val)))
         if neurons_2 is not None:
-            model.add(Dense(neurons_2, activation='relu'))
+            model.add(Dense(neurons_2, activation='relu', kernel_initializer=initializer))
         #model.add(Dropout(.2))
-        model.add(Dense(num_classes, activation='softmax'))
+        model.add(Dense(num_classes, activation='sigmoid', kernel_initializer=initializer))
 
         # Configure the model and start training
         sgd = SGD(learning_rate=0.1, decay=1e-2, momentum=0.5)
-        #model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
-        model.compile(loss=nan_bce, optimizer=sgd, metrics=['categorical_accuracy'])
+        adam = Adam(learning_rate=0.1)
+        model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=[AUC(from_logits=True)])
+        #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
         return model
 
     
@@ -68,7 +79,7 @@ class MLPMultilabel:
         
         partial_hyper = partial(self.hyper_model_build, input_dim=x_train_norm.shape[1], num_classes=y_train.shape[1])
         tuner = kt.Hyperband(partial_hyper,
-                     objective='val_categorical_accuracy',
+                     objective= kt.Objective('val_avg_multilabel_BA_2', direction="max"),#'val_avg_multilabel_BA_2',
                      max_epochs=10,
                      factor=3,
                      directory='hypertunning',
@@ -82,7 +93,7 @@ class MLPMultilabel:
         model = tuner.hypermodel.build(best_hps)
         history = model.fit(x_train_norm, y_train, epochs=100, batch_size=50, shuffle=True, validation_split=0.2)
 
-        val_acc_per_epoch = history.history['val_categorical_accuracy']
+        val_acc_per_epoch = history.history['val_avg_multilabel_BA_2']
         best_epoch = val_acc_per_epoch.index(max(val_acc_per_epoch)) + 1
         print('Best epoch: %d' % (best_epoch,))
 
@@ -96,28 +107,30 @@ class MLPMultilabel:
     
     def hyper_model_build(self, hp, input_dim, num_classes) -> Sequential:
         model = Sequential()
+        initializer = GlorotNormal()
 
         hp_units = hp.Int('units_1', min_value=4, max_value=64, step=4)
         hp_learning_rate = hp.Choice('learning_rate', values=[1e-1, 1e-2, 1e-3, 1e-4])
         hp_momentum = hp.Choice('momentum', values=[0.8, 0.5, 0.3, 0.1])
-        hp_l2 = hp.Choice('l2', values=[1e-2, 1e-3, 1e-4])
+        #hp_l2 = hp.Choice('l2', values=[0.0, 1e-2, 1e-3, 1e-4])
 
-        model.add(Dense(units=hp_units, input_dim=input_dim, activation='relu', activity_regularizer=l2(hp_l2)))
+        model.add(Dense(units=hp_units, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
 
         for i in range(1, hp.Int("num_layers", 1, 2)):
             model.add(
                 Dense(
                     units=hp.Int(f"units_{i+1}", min_value=4, max_value=64, step=4),
-                    activation='relu', activity_regularizer=l2(hp_l2))
+                    activation='relu', kernel_initializer=initializer) #, activity_regularizer=l2(hp_l2)
                 )
 
 
-        model.add(Dense(num_classes, activation='softmax'))
+        model.add(Dense(num_classes, activation='sigmoid',kernel_initializer=initializer))
 
         # Configure the model and start training
-        sgd = SGD(learning_rate=hp_learning_rate, decay=1e-2, momentum=hp_momentum)
-        #model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
-        model.compile(loss=nan_bce, optimizer=sgd, metrics=['categorical_accuracy'])
+        #sgd = SGD(learning_rate=hp_learning_rate, decay=1e-2, momentum=hp_momentum)
+        adam = Adam(learning_rate=hp_learning_rate, epsilon=hp_momentum)
+        model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=['categorical_accuracy'])
+        #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
         return model
 
 
@@ -164,6 +177,7 @@ class DataProcessingExtrasensory:
         x = raw[raw.columns.drop(raw.filter(regex='label:'))]
         y = raw.filter(regex='label:')
         x = self.treat_missing(x)
+        y = self.treat_missing(y)
         #y = y.fillna(0) #TODO: erase
         return x, y
     
@@ -186,7 +200,7 @@ class HAR:
             'df': None,
             'hypertunning': False,
             'hypertunning_params': {},
-            'neurons_1' : 16, 
+            'neurons_1' : 32, 
             'neurons_2' : None, 
             'l2' : 0.01,
             'labels' : ['label:SITTING', 'label:LYING_DOWN','label:OR_standing', 'label:FIX_walking']
@@ -223,7 +237,8 @@ class HAR:
 
     def run(self):
         self.mlp.train(self.data.x_train, self.data.y_train)
-        self.mlp.evaluate(self.data.x_test, self.data.y_test)
+        test_results, ba = self.mlp.evaluate(self.data.x_test, self.data.y_test)
+        return test_results, ba
 
     def hypertunning(self):
         model, best_hps, best_epoch = self.mlp.hypertunning(self.data.x_train, self.data.y_train)
@@ -261,6 +276,47 @@ def avg_multilabel_BA(y_truei, y_predi):
         ba = 0.5*(specificity+sensitivity)
         ba_array.append(ba)
     return np.mean(ba_array)
+
+
+def avg_multilabel_BA_2(y_truei, y_predi):
+    ba_array = []
+    
+    global tp
+    global tn
+    global fp
+    global fn
+    tp.update_state(y_truei, y_predi)
+    tn.update_state(y_truei, y_predi)
+    fp.update_state(y_truei, y_predi)
+    fn.update_state(y_truei, y_predi)
+
+    specificity = math.divide(tn.result(), math.add(tn.result(), fp.result())) #tn / (tn+fp)
+    sensitivity = math.divide(tp.result(), math.add(tp.result(), fn.result())) #tp / (tp + fn)
+    ba = math.multiply(0.5, math.add(specificity, sensitivity))#0.5*(specificity+sensitivity)
+    return ba
+    '''for i in range(y_predi.shape[1]):
+        #y_true, y_pred = remove_nans_np(y_truei, y_predi)
+        
+        
+        try:
+            y_true, y_pred = remove_nans_np(y_truei.to_numpy()[:, i], y_predi[:, i])
+            #report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
+        except:
+            y_true, y_pred = remove_nans_np(y_truei[:, i], y_predi[:, i])
+            #report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
+        #sensitivity = report['1.0']['recall'] # tp / (tp + fn)
+        try:
+            specificity = #report['0.0']['recall'] #specificity = tn / (tn+fp)
+        except:
+            specificity = 1
+        try:
+            sensitivity = report['1.0']['recall'] # tp / (tp + fn)
+        except:
+            sensitivity = specificity # tp / (tp + fn)
+        ba = 0.5*(specificity+sensitivity)
+        ba_array.append(ba)'''
+    return np.mean(ba_array)
+
 
 
 def remove_nans_np(x, y):
@@ -305,6 +361,7 @@ def nan_bce(y_actual, y_predicted):
                             #zeros_like(y_actual),
                             #square(subtract(y_predicted, y_actual)))
 
+    #return bce(y_predicted.fillna(0), y_actual.fillna(0.0))
     return bce(y_predicted_masked, y_actual_masked)
 
 def get_all_user_csvs(folderpath : str):
@@ -329,8 +386,15 @@ def iterative_train_test_split(X, y, train_size):
 def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
     all_csvs = get_all_user_csvs(folderpath)
     all_dfs = {}
-    for i in range(k_folds):
-        fold_list_train = random.sample(all_csvs, n_users)
+    kf = KFold(n_splits=k_folds, shuffle=True)
+    #kf.get_n_splits(all_csvs)
+    
+    i=0
+    for train_index, test_index in kf.split(all_csvs):
+    #for i in range(k_folds):
+    #    print(train_index)
+        fold_list_train, fold_list_test = np.array(all_csvs)[train_index], np.array(all_csvs)[test_index]
+    #    fold_list_train = random.sample(all_csvs, n_users)
         fold_df_train = pd.read_csv(fold_list_train[0])
         for csv in fold_list_train[1:]:
             fold_df_train = fold_df_train.append(pd.read_csv(csv))
@@ -360,14 +424,15 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
             #x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
             #x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, test_size =0.2)
             x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, train_size =0.8)
-            x_train.to_csv(f'{path_user}/x_train.csv')
-            x_test.to_csv(f'{path_user}/x_test.csv')
-            y_train.to_csv(f'{path_user}/y_train.csv')
-            y_test.to_csv(f'{path_user}/y_test.csv')
+            x_train.to_csv(f'{path_user}/x_train.csv', index=False)
+            x_test.to_csv(f'{path_user}/x_test.csv', index=False)
+            y_train.to_csv(f'{path_user}/y_train.csv', index=False)
+            y_test.to_csv(f'{path_user}/y_test.csv', index=False)
 
-        fold_df_train.to_csv(f'{path_exp}/raw_40.csv')
+        fold_df_train.to_csv(f'{path_exp}/raw_40.csv', index=False)
         #salvo os paths
         all_dfs[f'fold_{i}'] = {'40': f'{path_exp}/raw_40.csv'} #{'train': fold_df_train}#, 'test': fold_df_test}
+        i+=1
 
     return all_dfs
 
@@ -382,7 +447,9 @@ if __name__ == '__main__':
         #'labels': labels
 }
     
-    har = HAR(config)
-    har.run()
+    #har = HAR(config)
+    #har.run()
+
+    create_k_folds_n_users(2, 40, '/home/wander/OtherProjects/har_flower/full_data')
     pass
     

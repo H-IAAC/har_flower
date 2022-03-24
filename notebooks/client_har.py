@@ -12,7 +12,9 @@ def run_client(df_path):
     labels = ['label:OR_standing', 'label:SITTING', 'label:LYING_DOWN', 'label:FIX_running', 'label:FIX_walking', 'label:BICYCLING']
     config = {
         'df_path': df_path,
-        'labels': labels
+        'labels': labels,
+        'neurons_1' : 32, 
+        'neurons_2' : 16, 
     }
     har = utils.HAR(config)
 
