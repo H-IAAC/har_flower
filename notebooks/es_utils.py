@@ -78,12 +78,19 @@ class MLPMultilabel:
     def hypertunning(self, x_train_norm, y_train,):
         
         partial_hyper = partial(self.hyper_model_build, input_dim=x_train_norm.shape[1], num_classes=y_train.shape[1])
-        tuner = kt.Hyperband(partial_hyper,
+        #tuner = kt.Hyperband(partial_hyper,
+        #             objective= kt.Objective('val_avg_multilabel_BA_2', direction="max"),#'val_avg_multilabel_BA_2',
+        #             max_epochs=10,
+        #             factor=3,
+        #             directory='hypertunning',
+        #             project_name='experimento_1')
+        tuner = kt.RandomSearch(partial_hyper,
                      objective= kt.Objective('val_avg_multilabel_BA_2', direction="max"),#'val_avg_multilabel_BA_2',
-                     max_epochs=10,
-                     factor=3,
+                     max_trials=100,
+                     executions_per_trial=1,
                      directory='hypertunning',
-                     project_name='experimento_1')
+                     project_name='experimento_1_RandSearchCV')
+        
         stop_early = EarlyStopping(monitor='val_loss', patience=5)
 
         tuner.search(x_train_norm, y_train, epochs=100, validation_split=0.2, callbacks=[stop_early])
