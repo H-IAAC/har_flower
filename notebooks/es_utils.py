@@ -118,7 +118,7 @@ class MLPMultilabel:
 
         hp_units = hp.Int('units_1', min_value=4, max_value=64, step=4)
         hp_learning_rate = hp.Choice('learning_rate', values=[1e-1, 1e-2, 1e-3, 1e-4])
-        hp_momentum = hp.Choice('momentum', values=[0.8, 0.5, 0.3, 0.1])
+        #hp_momentum = hp.Choice('momentum', values=[0.8, 0.5, 0.3, 0.1])
         #hp_l2 = hp.Choice('l2', values=[0.0, 1e-2, 1e-3, 1e-4])
 
         model.add(Dense(units=hp_units, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
@@ -135,7 +135,8 @@ class MLPMultilabel:
 
         # Configure the model and start training
         #sgd = SGD(learning_rate=hp_learning_rate, decay=1e-2, momentum=hp_momentum)
-        adam = Adam(learning_rate=hp_learning_rate, epsilon=hp_momentum)
+        adam = Adam(learning_rate=hp_learning_rate)
+        #adam = Adam(learning_rate=hp_learning_rate, epsilon=hp_momentum)
         model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=['categorical_accuracy'])
         #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
         return model
@@ -148,11 +149,12 @@ class DataProcessingExtrasensory:
         self.x, self.y = self.get_x_y_from_raw(raw)
         if labels is not None:
             self.y = self.select_labels(self.y, labels)
-        self.x_train, self.x_test, self.y_train, self.y_test = self.iterative_split_train_test() #self.split_train_test()
+        #self.x_train, self.x_test, self.y_train, self.y_test = self.iterative_split_train_test() #self.split_train_test()
+        self.x_train, self.x_test, self.y_train, self.y_test = self.split_train_test()
     
     def split_train_test(self, test_size=0.20):
-        x_train, y_train, x_test, y_test = iterative_train_test_split(self.x, self.y, test_size = test_size)
-        #x_train, x_test, y_train, y_test = train_test_split(self.x, self.y, test_size=test_size, random_state=42)
+        #x_train, x_test, y_train, y_test = iterative_train_test_split(self.x, self.y, test_size = test_size)
+        x_train, x_test, y_train, y_test = train_test_split(self.x, self.y, test_size=test_size, random_state=42)
 
         min_max_scaler = preprocessing.MinMaxScaler()
         input_shape = x_train.shape
@@ -428,9 +430,8 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
             raw = pd.read_csv(os.path.join(folderpath, test_user)).fillna(0.0)
             x = raw[raw.columns.drop(raw.filter(regex='label:'))]
             y = raw.filter(regex='label:')
-            #x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
-            #x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, test_size =0.2)
-            x_train, y_train, x_test, y_test = iterative_train_test_split(x, y, train_size =0.8)
+            x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
+            #x_train, x_test, y_train, y_test = iterative_train_test_split(x, y, train_size =0.8)
             x_train.to_csv(f'{path_user}/x_train.csv', index=False)
             x_test.to_csv(f'{path_user}/x_test.csv', index=False)
             y_train.to_csv(f'{path_user}/y_train.csv', index=False)
