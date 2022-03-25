@@ -78,7 +78,7 @@ converter = TFLiteTransferConverter(
     4, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=10
 )
 
-converter.convert_and_save("tflite_model")
+converter.convert_and_save("tflite_convertor/tflite_model")
 
 
 # In[ ]:
