@@ -90,7 +90,8 @@ class TFLiteTransferConverter(object):
 
     def _read_parameter_shapes(self, inference_model):
         """Infers shapes of model parameters from the inference model."""
-        interpreter = tfv1.lite.Interpreter(model_content=inference_model)
+#        interpreter = tfv1.lite.Interpreter(model_content=inference_model)
+        interpreter = tf.lite.Interpreter(model_content=inference_model)
         return [
             parameter_in["shape"].tolist()
             for parameter_in in interpreter.get_input_details()[1:]
