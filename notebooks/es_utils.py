@@ -36,15 +36,15 @@ fp = FalsePositives()
 fn = FalseNegatives()
 
 class MLPMultilabel:
-    def __init__(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> None:
+    def __init__(self) -> None:
         self.base_model = None
         self.head_model = None
 
     def set_base_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
-        self.base_model = self.build_base_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2=l2)
+        self.base_model = self.build_base_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2)
 
-    def set_head_model(self, input_dim, num_classes, neurons_1=8, neurons_2=None, l2=0.01) -> None:
-        self.head_model = self.build_head_model(input_dim, num_classes, neurons_1=neurons_1, l2=l2)
+    def set_head_model(self, input_dim, num_classes, neurons=8, l2=0.01) -> None:
+        self.head_model = self.build_head_model(input_dim, num_classes, neurons=neurons, l2_val=l2)
 
     def get_base_model(self) -> Sequential:
         return self.base_model
@@ -55,13 +55,10 @@ class MLPMultilabel:
     def train(self, model, x_train_norm, y_train):
         model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
 
-    def train(self, x_train_norm, y_train):
-        self.model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
-
-    def evaluate(self, x_test_norm, y_test):
-        test_results = self.model.evaluate(x_test_norm, y_test, verbose=1)
-        ba = self.test_BA(x_test_norm, y_test)
-        print(f'Test results - Loss: {test_results[0]} - Accuracy: {test_results[1]}%')
+    def evaluate(self, model, x_test_norm, y_test):
+        test_results = model.evaluate(x_test_norm, y_test, verbose=1)
+        ba = self.test_BA(model, x_test_norm, y_test)
+        print(f'Test results - Loss - Accuracy: {test_results}')
         print(f'Averaged Balanced Accuracy: {ba:.6f}')
         
         return test_results, ba
@@ -90,6 +87,7 @@ class MLPMultilabel:
 
     def build_head_model(self, input_dim, num_classes, neurons=8, l2_val=0.01) -> Sequential:
         model = Sequential()
+        initializer = GlorotNormal()
         model.add(Dense(neurons, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
         model.add(Dense(num_classes, activation='sigmoid', kernel_initializer=initializer))
 
@@ -165,6 +163,8 @@ class DataProcessingExtrasensory:
 
 ## -------------------------------
 class HAR:
+    mlp = MLPMultilabel()
+
     def __init__(self, config : dict) -> None:
         self.config = {
             'df_path': None,
@@ -182,9 +182,9 @@ class HAR:
             self.config[key] = config[key]
         
         if self.config['df'] is None:
-            self.data= DataProcessingExtrasensory(self.load(self.config['df_path']), labels=self.config['labels']) #TODO: attention
+            self.data = DataProcessingExtrasensory(self.load(self.config['df_path']), labels=self.config['labels']) #TODO: attention
         else:
-            self.data= DataProcessingExtrasensory(self.config['df'], labels=self.config['labels']) #TODO: attention
+            self.data = DataProcessingExtrasensory(self.config['df'], labels=self.config['labels']) #TODO: attention
         
         if not self.config['hypertunning']:
             self.base_model = self.make_base_model(
@@ -201,14 +201,14 @@ class HAR:
             self.data.x_train.shape[1],
             self.data.y_train.shape[1],
             neur=int(self.config['neurons_1_head']),
-            l2=self.config['l2'])
+            l2_val=self.config['l2'])
 
-    def make_base_model(self, input_dim, num_classes, neur_1, neur_2, l2):
-        self.mlp.set_base_model(input_dim, num_classes, neurons_1=neur_1, neurons_2=neur_2, l2=l2)
+    def make_base_model(self, input_dim, num_classes, neur_1, neur_2, l2_val):
+        self.mlp.set_base_model(input_dim, num_classes, neurons_1=neur_1, neurons_2=neur_2, l2=l2_val)
         return self.mlp.get_base_model()
         
-    def make_head_model(self, input_dim, num_classes, neur_1, l2):
-        self.mlp.set_head_model(input_dim, num_classes, neurons_1=neur_1, l2=l2)
+    def make_head_model(self, input_dim, num_classes, neur, l2_val):
+        self.mlp.set_head_model(input_dim, num_classes, neurons=neur, l2=l2_val)
         return self.mlp.get_head_model()
         
 
@@ -220,9 +220,16 @@ class HAR:
         return pd.read_csv(df_path)
 
     def run(self):
-        self.mlp.train(self.data.x_train, self.data.y_train)
-        self.mlp.evaluate(self.data.x_test, self.data.y_test)
-        
+        self.mlp.train(self.base_model, self.data.x_train, self.data.y_train)
+        test_results, ba = self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
+        return test_results, ba
+
+    def hypertunning(self):
+        model, best_hps, best_epoch = self.mlp.hypertunning(self.data.x_train, self.data.y_train)
+        test_results, ba = self.mlp.evaluate(self.data.x_test, self.data.y_test)
+
+        return model, best_hps, best_epoch, test_results, ba
+
     def evaluate(self):
         self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
 
@@ -271,30 +278,6 @@ def avg_multilabel_BA_2(y_truei, y_predi):
     sensitivity = math.divide(tp.result(), math.add(tp.result(), fn.result())) #tp / (tp + fn)
     ba = math.multiply(0.5, math.add(specificity, sensitivity))#0.5*(specificity+sensitivity)
     return ba
-    '''for i in range(y_predi.shape[1]):
-        #y_true, y_pred = remove_nans_np(y_truei, y_predi)
-        
-        
-        try:
-            y_true, y_pred = remove_nans_np(y_truei.to_numpy()[:, i], y_predi[:, i])
-            #report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
-        except:
-            y_true, y_pred = remove_nans_np(y_truei[:, i], y_predi[:, i])
-            #report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
-        #sensitivity = report['1.0']['recall'] # tp / (tp + fn)
-        try:
-            specificity = #report['0.0']['recall'] #specificity = tn / (tn+fp)
-        except:
-            specificity = 1
-        try:
-            sensitivity = report['1.0']['recall'] # tp / (tp + fn)
-        except:
-            sensitivity = specificity # tp / (tp + fn)
-        ba = 0.5*(specificity+sensitivity)
-        ba_array.append(ba)'''
-    return np.mean(ba_array)
-
-
 
 def remove_nans_np(x, y):
     mask = ~np.isnan(x) & ~np.isnan(y)
