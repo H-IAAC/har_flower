@@ -30,6 +30,7 @@ from tensorflow.python.tools import freeze_graph
 from .. import utils
 
 
+
 class KerasModelHead(object):
     """Head model configuration for arbitrary Keras models.
 
@@ -43,7 +44,6 @@ class KerasModelHead(object):
         # Convert Keras model to SavedModel.
         saved_model_dir = tempfile.mkdtemp("tflite-transfer-keras-model")
         tf.compat.v1.keras.experimental.export_saved_model(keras_model, saved_model_dir)
-#        tf.keras.models.save_model(keras_model, saved_model_dir, save_format="tf")
 
         # Pre-fetch some information about the model.
         with tfv1.Session(graph=tf.Graph()) as sess:
@@ -67,7 +67,6 @@ class KerasModelHead(object):
 
         with tfv1.Session(graph=tf.Graph()) as sess:
             eval_metagraph = tfv1.saved_model.load(sess, ["eval"], saved_model_dir)
-#            eval_metagraph = tf.saved_model.load(saved_model_dir, ["eval"])
             self._eval_signature = eval_metagraph.signature_def.get("eval")
 
         if len(self._predict_signature.inputs) != 1:
@@ -104,7 +103,7 @@ class KerasModelHead(object):
             return_elements=[output_name],
         )[0]
         variable_tensors = [
-            tf.get_default_graph().get_tensor_by_name(scope + "/" + name)
+            tfv1.get_default_graph().get_tensor_by_name(scope + "/" + name)
             for name in self._variable_names
         ]
         return output, variable_tensors
@@ -153,11 +152,11 @@ class KerasModelHead(object):
             return_elements=[loss_name],
         )[0]
         train_variables = [
-            tf.get_default_graph().get_tensor_by_name(scope + "/" + name)
+            tfv1.get_default_graph().get_tensor_by_name(scope + "/" + name)
             for name in self._trainable_variable_names
         ]
         variables = [
-            tf.get_default_graph().get_tensor_by_name(scope + "/" + name)
+            tfv1.get_default_graph().get_tensor_by_name(scope + "/" + name)
             for name in self._variable_names
         ]
         with tf.name_scope(scope + "/backprop"):
@@ -225,7 +224,7 @@ class KerasModelHead(object):
             saved_model_tags="eval",
         )
 
-        const_graph_def = tf.GraphDef()
+        const_graph_def = tfv1.GraphDef()
         with open(graph_def_file_name, "rb") as graph_def_file:
             const_graph_def.ParseFromString(graph_def_file.read())
 
