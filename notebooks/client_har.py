@@ -9,8 +9,13 @@ def run_client(df_path):
     #model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
     #model.compile("adam", "sparse_categorical_crossentropy", metrics=["accuracy"])
     #(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-
-    config = {'df_path': df_path}
+    labels = ['label:OR_standing', 'label:SITTING', 'label:LYING_DOWN', 'label:FIX_running', 'label:FIX_walking', 'label:BICYCLING']
+    config = {
+        'df_path': df_path,
+        'labels': labels,
+        'neurons_1' : 32, 
+        'neurons_2' : 16, 
+    }
     har = utils.HAR(config)
 
     # Start Flower client
@@ -33,8 +38,10 @@ class CifarClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         self.har.mlp.model.set_weights(parameters)
-        loss, accuracy = self.har.mlp.evaluate(self.har.data.x_test, self.har.data.y_test)
-        return loss, len(self.har.data.x_test), {"accuracy": accuracy}
+        loss_accuracy, ba = self.har.mlp.evaluate(self.har.data.x_test, self.har.data.y_test)
+        #print(loss)
+        #print(accuracy)
+        return loss_accuracy[0], len(self.har.data.x_test), {"accuracy": loss_accuracy[1]}
 
 
 
