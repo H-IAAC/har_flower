@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[19]:
+# In[1]:
 
 
 import numpy as np
@@ -10,52 +10,179 @@ import tensorflow as tf
 import es_utils as utils
 
 
-# In[20]:
+# In[2]:
 
+
+'''labels = ['label:LYING_DOWN',
+ 'label:SITTING',
+ 'label:FIX_walking',
+ 'label:FIX_running',
+ 'label:BICYCLING',
+ 'label:SLEEPING',
+ 'label:LAB_WORK',
+ 'label:IN_CLASS',
+ 'label:IN_A_MEETING',
+ 'label:LOC_main_workplace',
+ 'label:OR_indoors',
+ 'label:OR_outside',
+ 'label:IN_A_CAR',
+ 'label:ON_A_BUS',
+ 'label:DRIVE_-_I_M_THE_DRIVER',
+ 'label:DRIVE_-_I_M_A_PASSENGER',
+ 'label:LOC_home',
+ 'label:FIX_restaurant',
+ 'label:PHONE_IN_POCKET',
+ 'label:OR_exercise',
+ 'label:COOKING',
+ 'label:SHOPPING',
+ 'label:STROLLING',
+ 'label:DRINKING__ALCOHOL_',
+ 'label:BATHING_-_SHOWER',
+ 'label:CLEANING',
+ 'label:DOING_LAUNDRY',
+ 'label:WASHING_DISHES',
+ 'label:WATCHING_TV',
+ 'label:SURFING_THE_INTERNET',
+ 'label:AT_A_PARTY',
+ 'label:AT_A_BAR',
+ 'label:LOC_beach',
+ 'label:SINGING',
+ 'label:TALKING',
+ 'label:COMPUTER_WORK',
+ 'label:EATING',
+ 'label:TOILET',
+ 'label:GROOMING',
+ 'label:DRESSING',
+ 'label:AT_THE_GYM',
+ 'label:STAIRS_-_GOING_UP',
+ 'label:STAIRS_-_GOING_DOWN',
+ 'label:ELEVATOR',
+ 'label:OR_standing',
+ 'label:AT_SCHOOL',
+ 'label:PHONE_IN_HAND',
+ 'label:PHONE_IN_BAG',
+ 'label:PHONE_ON_TABLE',
+ 'label:WITH_CO-WORKERS',
+ 'label:WITH_FRIENDS']
+
+len(labels)'''
+
+labels = [
+    'label:OR_standing',
+    'label:SITTING',
+    'label:LYING_DOWN',
+    'label:FIX_running',
+    'label:FIX_walking',
+    'label:BICYCLING'
+]
+
+"""
+paths = ['../input/extrasensory/primary/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv',
+         '../input/extrasensory/primary/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+         '../input/extrasensory/primary/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+         '../input/extrasensory/primary/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv']
+bas = []
 
 config = {'df_path': '../input/user1.features_labels.csv'}
+
+for path in paths:
+
+    config = {
+            'df_path': path,
+            'neurons_1' : 32, 
+            'neurons_2' : 16, 
+            'labels': labels
+    }
+
+    har = utils.HAR(config)
+    test_results, ba = har.run()
+    #model, best_hps, best_epoch, test_results, ba = har.hypertunning()
+    bas.append(ba.numpy())
+    
+
+print(bas)
+print(max(bas))
+
+
+paths = ['../input/extrasensory/primary/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv', 
+         '../input/extrasensory/primary/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+         '../input/extrasensory/primary/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+         '../input/extrasensory/primary/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv']
+bas = []
+
+for path in paths:
+
+    config = {
+            'df_path': path,
+            #'df_path': '../full_data/exp_/fold_0/raw_40.csv',
+            #'neurons_1' : 32, 
+            #'neurons_2' : 16, 
+            'labels': labels
+    }
+
+    har = utils.HAR(config)
+    #test_results, ba = har.run()
+    model, best_hps, best_epoch, test_results, ba = har.hypertunning()
+    bas.append(ba.numpy())
+    
+
+print(bas)
+
+
+
+bas = []
+config = {
+        #'df_path': path,
+        'df_path': '../full_data/exp_/fold_0/raw_40.csv',
+        'neurons_1' : 32, 
+        'neurons_2' : 16, 
+        'labels': labels
+}
+
 har = utils.HAR(config)
-har.dummy_test()
+test_results, ba = har.run()
+#model, best_hps, best_epoch, test_results, ba = har.hypertunning()
+bas.append(ba.numpy())
 
 
-# In[3]:
+print(bas)
+print(max(bas))
 
 
-data = pd.read_csv('../input/user1.features_labels.csv')#.dropna() #TODO: attention
+import glob
+bas = []
+folderpath = '/home/wander/OtherProjects/har_flower/full_data'
+for path in glob.iglob(f'{folderpath}/**.csv', recursive=True):
+    config = {
+            'df_path': path,
+            #'df_path': '../full_data/exp_/fold_0/raw_40.csv',
+            #'neurons_1' : 32, 
+            #'neurons_2' : 16, 
+            'labels': labels
+    }
 
-#data.isna().sum()
-data.drop(columns=['lf_measurements:temperature_ambient'], inplace=True)
-data[data.columns.drop(data.filter(regex='label:'))]
+    har = utils.HAR(config)
+    #test_results, ba = har.run()
+    model, best_hps, best_epoch, test_results, ba = har.hypertunning()
+    bas.append(ba.numpy())
+    
 
+print(bas)
+"""
 
-# In[4]:
+config = {
+    'df_path': "../input/extrasensory/primary/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv",
+    'neurons_1_base': 32,
+    'neurons_1_head': 8,
+    'neurons_2': 16,
+    'labels': labels
+}
 
-
-#data[data.columns.drop(data.filter(regex='label:'))]
-data.filter(regex='label:').columns.values.tolist()
-
-
-# In[5]:
-
-
-data[data.columns.drop(data.filter(regex='label:'))].dropna()
+har = utils.HAR(config)
+har.run()
 
 
 # In[6]:
-
-
-data.fillna(0.0, inplace=True)
-#data.info()
-data[data.columns.drop(data.filter(regex='label:'))].dropna()
-
-
-# ### Convert the model for TFLite.
-
-# #### This will generate a directory called tflite_model with five tflite models.
-# #### Copy them in your Android code under the assets/model directory.
-
-# In[7]:
-
 
 from tflite_convertor.tfltransfer import bases
 from tflite_convertor.tfltransfer import heads
@@ -75,7 +202,7 @@ base_model.save("tflite_convertor/identity_model", save_format="tf")
 base_path = bases.saved_model_base.SavedModelBase("tflite_convertor/identity_model")
 converter = TFLiteTransferConverter(
     # num_classes, base_model, head_model, optimizer, train_batch_size
-    4, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=10
+    6, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=10
 )
 
 converter.convert_and_save("tflite_convertor/tflite_model")
