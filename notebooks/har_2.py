@@ -202,7 +202,7 @@ base_model.save("tflite_convertor/identity_model", save_format="tf")
 base_path = bases.saved_model_base.SavedModelBase("tflite_convertor/identity_model")
 converter = TFLiteTransferConverter(
     # num_classes, base_model, head_model, optimizer, train_batch_size
-    6, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=10
+    6, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=32
 )
 
 converter.convert_and_save("tflite_convertor/tflite_model")
