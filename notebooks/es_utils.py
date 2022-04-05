@@ -258,6 +258,8 @@ class HAR:
         self.config = {
             'df_path': None,
             'df': None,
+            'gen_base_model': False,
+            'gen_head_model': True,
             'hypertunning': False,
             'hypertunning_params': {},
             'neurons_1_base': 32,
@@ -282,23 +284,24 @@ class HAR:
             self.data = DataProcessingExtrasensory(self.config['df'], labels=self.config['labels'])  # TODO: attention
 
         # Make the base model
-        if not self.config['hypertunning']:
-            self.base_model = self.make_base_model(
-                self.data.x_train.shape[1],
-                self.data.y_train.shape[1],
-                neur_1=self.config['neurons_1_base'],
-                neur_2=self.config['neurons_2'],
-                l2_val=self.config['l2'])
-
-        else:
-            self.hypertunning()
+        if self.config['gen_base_model'] is True:
+            if not self.config['hypertunning']:
+                self.base_model = self.make_base_model(
+                    self.data.x_train.shape[1],
+                    self.data.y_train.shape[1],
+                    neur_1=self.config['neurons_1_base'],
+                    neur_2=self.config['neurons_2'],
+                    l2_val=self.config['l2'])
+            else:
+                self.hypertunning()
 
         # Make the head model
-        self.head_model = self.make_head_model(
-            self.data.x_train.shape[1],
-            self.data.y_train.shape[1],
-            neur=self.config['neurons_1_head'],
-            l2_val=self.config['l2'])
+        if self.config['gen_head_model'] is True:
+            self.head_model = self.make_head_model(
+                self.data.x_train.shape[1],
+                self.data.y_train.shape[1],
+                neur=self.config['neurons_1_head'],
+                l2_val=self.config['l2'])
 
     def make_base_model(self, input_dim, num_classes, neur_1, neur_2, l2_val):
         self.mlp.set_base_model(input_dim, num_classes, neurons_1=neur_1, neurons_2=neur_2, l2=l2_val)
