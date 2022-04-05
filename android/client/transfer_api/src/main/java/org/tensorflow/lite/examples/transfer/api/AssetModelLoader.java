@@ -28,7 +28,7 @@ import java.nio.channels.FileChannel.MapMode;
 public class AssetModelLoader implements ModelLoader {
   private AssetManager assetManager;
   private String directoryName;
-
+private String folder="fold_0/";
   /**
    * Create a loader for a transfer learning model under given directory.
    *
@@ -41,27 +41,27 @@ public class AssetModelLoader implements ModelLoader {
 
   @Override
   public LiteModelWrapper loadInitializeModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile("initialize.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+"initialize.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadBaseModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile("bottleneck.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+"bottleneck.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadTrainModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile("train_head.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+"train_head.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadInferenceModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile("inference.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+"inference.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadOptimizerModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile("optimizer.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+"optimizer.tflite"));
   }
 
   protected MappedByteBuffer loadMappedFile(String filePath) throws IOException {

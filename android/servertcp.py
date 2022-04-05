@@ -20,7 +20,7 @@ def main() -> None:
     )
 
     # Start Flower server for 10 rounds of federated learning
-    fl.server.start_server("[::]:8080", config={"num_rounds": 10}, strategy=strategy)
+    fl.server.start_server("[::]:8080", config={"num_rounds": 7}, strategy=strategy)
 
 
 def fit_config(rnd: int):
@@ -78,14 +78,16 @@ while True:
     conn, addr = s.accept()  
     print('Connected by', addr)  
     data = conn.recv(1024) 
-    while test_port(hostip,flowerport):
-     os.system("fuser -n tcp -k 8080") 
-     test_port(hostip,flowerport)
+    
     
     if not data: break  
     conn.sendall(data)# Send back the received data intact   
     print('Received', repr(data)) 
+    while test_port(hostip,flowerport):
+     os.system("fuser -n tcp -k 8080") 
+     test_port(hostip,flowerport)
     main() 
-    if(repr(data)==b'start'):
-    	print(123)
     conn.close()
+   # if(repr(data)==b'start'):
+   # 	print(123)
+    
