@@ -137,5 +137,5 @@ full_data
 notebooks/hypertunning
 
 # Android studio
-.idea
-.gradle
+android/client/.idea
+android/client/.gradle
