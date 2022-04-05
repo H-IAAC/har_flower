@@ -135,3 +135,7 @@ full_data
 
 #tf checkpoints 
 notebooks/hypertunning
+
+# Android studio
+.idea
+.gradle
