@@ -49,11 +49,11 @@ class LiteBottleneckModel implements Closeable {
   }
 
   int getNumBottleneckFeatures() {
-    return modelWrapper.getInterpreter().getOutputTensor(0).numElements();
+    return modelWrapper.getInterpreter().getInputTensor(0).numElements();
   }
 
   int[] getBottleneckShape() {
-    return modelWrapper.getInterpreter().getOutputTensor(0).shape();
+    return modelWrapper.getInterpreter().getInputTensor(0).shape();
   }
 
   @Override

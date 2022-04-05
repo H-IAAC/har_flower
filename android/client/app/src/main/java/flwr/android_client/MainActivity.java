@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
     public void setResultText(String text) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
         String time = dateFormat.format(new Date());
-        resultText.append("\n" + time + "   " + text);
+        //resultText.append("\n" + time + "   " + text);
     }
 
     public void loadData(View view) {
@@ -162,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             if (activity == null) {
                 return;
             }
-            activity.setResultText(result);
+            //activity.setResultText(result);
             activity.trainButton.setEnabled(false);
         }
     }
@@ -226,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
 
                     Scalar epoch_config = message.getFitIns().getConfigMap().getOrDefault("local_epochs", Scalar.newBuilder().setSint64(1).build());
 
-                    int local_epochs = (int) epoch_config.getSint64();
+                    int local_epochs = 4;//(int) epoch_config.getSint64();
 
                     // Our model has 10 layers
                     ByteBuffer[] newWeights = new ByteBuffer[layers.size()] ;
