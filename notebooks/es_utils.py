@@ -233,6 +233,7 @@ class DataProcessingExtrasensory:
         # raw = self.treat_missing(raw) #TODO: attention
         # raw = raw.fillna(0.0)
         x = raw[raw.columns.drop(raw.filter(regex='label:'))]
+        x = x[x.columns.drop(x.filter(regex='timestamp'))]
         y = raw.filter(regex='label:')
         x = self.treat_missing(x)
         y = self.treat_missing(y)
@@ -463,6 +464,7 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
 
             raw = pd.read_csv(os.path.join(folderpath, test_user)).fillna(0.0)
             x = raw[raw.columns.drop(raw.filter(regex='label:'))]
+            x = x[x.columns.drop(x.filter(regex='timestamp'))]
             y = raw.filter(regex='label:')
             x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
             # x_train, x_test, y_train, y_test = iterative_train_test_split(x, y, train_size =0.8)

@@ -33,7 +33,7 @@ from tflite_convertor.tfltransfer import optimizers
 from tflite_convertor.tfltransfer.tflite_transfer_converter import TFLiteTransferConverter
 
 base_dir = "tflite_convertor/identity_model/saved_model_fold_"
-target_dir = "tflite_convertor/tflite_model/saved_model_fold_"
+target_dir = "tflite_convertor/tflite_model/fold_"
 
 for i in range(0, 5):
     base_model = bases.saved_model_base.SavedModelBase(base_dir+str(i))
