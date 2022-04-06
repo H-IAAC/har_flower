@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
     public void setResultText(String text) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
         String time = dateFormat.format(new Date());
-        //resultText.append("\n" + time + "   " + text);
+        resultText.post(() -> resultText.append("\n" + time + "   " + text));
     }
 
     public void loadData(View view) {
@@ -162,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             if (activity == null) {
                 return;
             }
-            //activity.setResultText(result);
+            activity.setResultText(result);
             activity.trainButton.setEnabled(false);
         }
     }

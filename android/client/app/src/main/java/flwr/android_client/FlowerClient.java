@@ -95,7 +95,7 @@ public class FlowerClient {
 */
     public void loadDataExtrasensory(int device_id, String experimentid) {
 
-        new Thread(new ClientThread("start")).start();
+//        new Thread(new ClientThread("start")).start();
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(this.context.getAssets().open("data/extrasensory/fold_" + experimentid + "/extrasensory_partition_" + (device_id - 1) + ".txt")));
             String line;
