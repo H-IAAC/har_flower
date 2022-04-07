@@ -166,6 +166,7 @@ public final class TransferLearningModel implements Closeable {
     }
 
     try {
+
       initializeModel = new LiteInitializeModel(modelLoader.loadInitializeModel());
       bottleneckModel = new LiteBottleneckModel(modelLoader.loadBaseModel());
       trainHeadModel = new LiteTrainHeadModel(modelLoader.loadTrainModel());

@@ -36,7 +36,7 @@ public class TransferLearningModelTest {
     TransferLearningModel model =
         new TransferLearningModel(
             new AssetModelLoader(
-                InstrumentationRegistry.getInstrumentation().getContext(), "model"),
+                InstrumentationRegistry.getInstrumentation().getContext(), "model", experimentID),
             Arrays.asList("1", "2", "3", "4", "5"));
 
     Path tempFilePath = Files.createTempFile("tflite-tl-test", ".bin");
@@ -49,7 +49,7 @@ public class TransferLearningModelTest {
     model =
         new TransferLearningModel(
             new AssetModelLoader(
-                InstrumentationRegistry.getInstrumentation().getContext(), "model") {
+                InstrumentationRegistry.getInstrumentation().getContext(), "model", experimentID) {
               @Override
               public LiteModelWrapper loadInitializeModel() throws IOException {
                 // Fill with ones instead of zeros.

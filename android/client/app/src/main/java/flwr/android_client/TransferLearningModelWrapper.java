@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.ConditionVariable;
 import android.os.Environment;
 import android.util.Pair;
+import android.widget.Spinner;
 
 import java.io.Closeable;
 import java.io.File;
@@ -39,12 +40,14 @@ public class TransferLearningModelWrapper implements Closeable {
     private final ConditionVariable shouldTrain = new ConditionVariable();
     private volatile LossConsumer lossConsumer;
     private Context context;
-    TransferLearningModelWrapper(Context context) {
+    private String  experiment;
+    TransferLearningModelWrapper(Context context, Spinner experimentID) {
         model =
                 new TransferLearningModel(
-                        new AssetModelLoader(context, "model"),
+                        new AssetModelLoader(context, "model",experimentID.getSelectedItem().toString()),
                         Arrays.asList("label:LYING_DOWN","label:SITTING","label:FIX_walking","label:FIX_running","label:BICYCLING","label:SLEEPING"));
         this.context = context;
+
     }
 
 
