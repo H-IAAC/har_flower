@@ -183,6 +183,7 @@ class DataProcessingExtrasensory:
     def get_x_y_from_raw(self, raw):
         #raw = self.treat_missing(raw) #TODO: attention
         #raw = raw.fillna(0.0)
+        raw.drop(columns=['timestamp'], inplace=True)
         x = raw[raw.columns.drop(raw.filter(regex='label:'))]
         y = raw.filter(regex='label:')
         x = self.treat_missing(x)
