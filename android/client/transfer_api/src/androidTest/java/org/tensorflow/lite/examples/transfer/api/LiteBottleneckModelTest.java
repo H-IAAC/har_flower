@@ -39,7 +39,7 @@ public class LiteBottleneckModelTest {
   public void shouldGenerateSaneBottlenecks() throws IOException {
     LiteBottleneckModel model =
         new LiteBottleneckModel(
-            new AssetModelLoader(InstrumentationRegistry.getInstrumentation().getContext(), "model")
+            new AssetModelLoader(InstrumentationRegistry.getInstrumentation().getContext(), "model", "0")
                 .loadBaseModel());
 
     ByteBuffer image =

@@ -20,7 +20,7 @@ public class ClientThread implements Runnable {
         try {
             // the IP and port should be correct to have a connection established
             // Creates a stream socket and connects it to the specified port number on the named host.
-            client = new Socket("192.168.15.90", 9999);  // connect to server
+            //   client = new Socket("192.168.15.90", 9999);  // connect to server
             printwriter = new PrintWriter(client.getOutputStream(),true);
             printwriter.write(message);  // write the message to output stream
 

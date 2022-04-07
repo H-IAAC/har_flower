@@ -61,7 +61,7 @@ public class ModelCorrectnessTest {
     TransferLearningModel model =
         new TransferLearningModel(
             new AssetModelLoader(
-                InstrumentationRegistry.getInstrumentation().getContext(), "model"),
+                InstrumentationRegistry.getInstrumentation().getContext(), "model", experimentID),
             Arrays.asList("daisy", "dandelion", "roses", "sunflowers", "tulips"));
 
     System.out.println("Going to add the samples.");

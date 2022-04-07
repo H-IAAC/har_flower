@@ -18,6 +18,8 @@ package org.tensorflow.lite.examples.transfer.api;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.widget.Spinner;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
@@ -26,42 +28,46 @@ import java.nio.channels.FileChannel.MapMode;
 
 /** Handles loading various parts of the model stored as a directory under Android assets. */
 public class AssetModelLoader implements ModelLoader {
+  private final String experiment;
   private AssetManager assetManager;
   private String directoryName;
-private String folder="fold_0/";
+private String folder="fold_";
   /**
    * Create a loader for a transfer learning model under given directory.
    *
    * @param directoryName path to model directory in assets tree.
+   * @param experimentID
    */
-  public AssetModelLoader(Context context, String directoryName) {
+  public AssetModelLoader(Context context, String directoryName, String experimentID) {
     this.directoryName = directoryName;
     this.assetManager = context.getAssets();
+    this.experiment=experimentID;
+
   }
 
   @Override
   public LiteModelWrapper loadInitializeModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile(folder+"initialize.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+this.experiment+"/initialize.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadBaseModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile(folder+"bottleneck.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+this.experiment+"/bottleneck.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadTrainModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile(folder+"train_head.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+this.experiment+"/train_head.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadInferenceModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile(folder+"inference.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+this.experiment+"/inference.tflite"));
   }
 
   @Override
   public LiteModelWrapper loadOptimizerModel() throws IOException {
-    return new LiteModelWrapper(loadMappedFile(folder+"optimizer.tflite"));
+    return new LiteModelWrapper(loadMappedFile(folder+this.experiment+"/optimizer.tflite"));
   }
 
   protected MappedByteBuffer loadMappedFile(String filePath) throws IOException {

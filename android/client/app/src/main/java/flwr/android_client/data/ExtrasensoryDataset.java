@@ -6,7 +6,6 @@ import android.util.Log;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReaderBuilder;
-
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,31 +16,25 @@ public class ExtrasensoryDataset {
     List<String[]> allDataXInput = null;
     List<String[]> allDataYInput = null;
     List<List<Float>> allXFloatArray;
-
+    List<List<String>> allYStringArray;
+    List<Valuedataset> listAllXY = new ArrayList<Valuedataset>();
+    String TAG ="Extrasensory";
     public List<Valuedataset> getListAllXY() {
         return listAllXY;
     }
-
     public void setListAllXY(List<Valuedataset> listAllXY) {
         this.listAllXY = listAllXY;
     }
-
-    List<Valuedataset> listAllXY = new ArrayList<Valuedataset>();
-
     public List<List<String>> getAllYStringArray() {
         return allYStringArray;
+    }
+    public List<List<Float>> getAllXFloatArray() {
+        return allXFloatArray;
     }
 
     public void setAllYStringArray(List<List<String>> allYStringArray) {
         this.allYStringArray = allYStringArray;
     }
-
-    List<List<String>> allYStringArray;
-
-    public List<List<Float>> getAllXFloatArray() {
-        return allXFloatArray;
-    }
-
     public void setAllXFloatArray(List<List<Float>> allXFloatArray) {
         this.allXFloatArray = allXFloatArray;
     }
@@ -60,7 +53,14 @@ public class ExtrasensoryDataset {
         }
         extrasensoryGetX(context, fileX);
         extrasensoryGetY(context, fileY);
-        getDataByCategories();
+        try {
+            getDataByCategories();
+        }
+        catch (Exception e) {
+            Log.e(TAG,e.getMessage());
+        }
+
+
     }
 
 
@@ -84,7 +84,7 @@ public class ExtrasensoryDataset {
                         System.err.println(row1[i]);
                     }
                 }
-                Log.d("Result0 ", String.valueOf(floatList.size()));
+                  Log.d(TAG, String.valueOf(floatList.size()));
                 allXFloatArray.add(floatList);
             }
             // Read all data at once
@@ -113,7 +113,7 @@ public class ExtrasensoryDataset {
 
                             listStringY.add(String.valueOf(i));
                             listStringY.add(allColumnNames[i]);
-                            Log.d("ResultY ", row1[0] + " " + allColumnNames[i] + " " + String.valueOf(Float.valueOf(i)));
+                            // Log.d("ResultY ", row1[0] + " " + allColumnNames[i] + " " + String.valueOf(Float.valueOf(i)));
                         }
                     } catch (NumberFormatException e) {
                         e.printStackTrace();
@@ -133,12 +133,10 @@ public class ExtrasensoryDataset {
         for (int i = 0; i < allXFloatArray.size(); i++) {
             try {
                 if (labels.contains(String.valueOf(allYStringArray.get(i).get(2)))) {
-                    Valuedataset d1 = new Valuedataset(allXFloatArray.get(1).get(0), String.valueOf(allYStringArray.get(i).get(1)), String.valueOf(allYStringArray.get(i).get(2)), allXFloatArray.get(i).subList(0, allXFloatArray.get(i).size()));
+                    Valuedataset d1 = new Valuedataset(allXFloatArray.get(1).get(0), String.valueOf(allYStringArray.get(i).get(1)), String.valueOf(allYStringArray.get(i).get(2)), allXFloatArray.get(i).subList(1, allXFloatArray.get(i).size()));
                     listAllXY.add(d1);
-                    //   Log.d("Logdata ", String.valueOf(allYStringArray.get(i).get(2)));
                 }
             } catch (Exception e) {
-                //  Log.e("Erro ", e.getMessage()+String.valueOf(allXFloatArray.get(i).get(0)));
             }
         }
     }
@@ -154,8 +152,6 @@ public class ExtrasensoryDataset {
                 // Log.e("Logdata Erro1", String.valueOf(allXFloatArray.get(i).get(0)));
             }
         }
-
-        //Log.d("Logdata Amostras ", label+" "+String.valueOf(listcategoryXY.size()));
         return listcategoryXY;
     }
 

@@ -51,7 +51,7 @@ public class LiteTrainHeadModelTest {
   public void shouldCalculateGradientsCorrectly() throws IOException {
     LiteTrainHeadModel model =
         new LiteTrainHeadModel(
-            new AssetModelLoader(InstrumentationRegistry.getInstrumentation().getContext(), "model")
+            new AssetModelLoader(InstrumentationRegistry.getInstrumentation().getContext(), "model", "0")
                 .loadTrainModel());
 
     ByteBuffer bottlenecks = generateRandomByteBuffer(
