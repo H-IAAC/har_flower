@@ -18,6 +18,7 @@ package org.tensorflow.lite.examples.transfer.api;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.util.Log;
 import android.widget.Spinner;
 
 import java.io.FileInputStream;
@@ -42,6 +43,7 @@ private String folder="fold_";
     this.directoryName = directoryName;
     this.assetManager = context.getAssets();
     this.experiment=experimentID;
+    Log.d("Exp",this.experiment);
 
   }
 
