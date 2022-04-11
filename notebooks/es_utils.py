@@ -304,28 +304,6 @@ def avg_multilabel_BA_2(y_truei, y_predi):
     sensitivity = math.divide(tp.result(), math.add(tp.result(), fn.result())) #tp / (tp + fn)
     ba = math.multiply(0.5, math.add(specificity, sensitivity))#0.5*(specificity+sensitivity)
     return ba
-    '''for i in range(y_predi.shape[1]):
-        #y_true, y_pred = remove_nans_np(y_truei, y_predi)
-        
-        
-        try:
-            y_true, y_pred = remove_nans_np(y_truei.to_numpy()[:, i], y_predi[:, i])
-            #report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
-        except:
-            y_true, y_pred = remove_nans_np(y_truei[:, i], y_predi[:, i])
-            #report = classification_report(y_true, (y_pred > 0.5), output_dict=True, zero_division=0)
-        #sensitivity = report['1.0']['recall'] # tp / (tp + fn)
-        try:
-            specificity = #report['0.0']['recall'] #specificity = tn / (tn+fp)
-        except:
-            specificity = 1
-        try:
-            sensitivity = report['1.0']['recall'] # tp / (tp + fn)
-        except:
-            sensitivity = specificity # tp / (tp + fn)
-        ba = 0.5*(specificity+sensitivity)
-        ba_array.append(ba)'''
-    return np.mean(ba_array)
 
 
 
