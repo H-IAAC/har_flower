@@ -35,11 +35,14 @@ from tflite_convertor.tfltransfer.tflite_transfer_converter import TFLiteTransfe
 base_dir = "tflite_convertor/identity_model/saved_model_fold_"
 target_dir = "tflite_convertor/tflite_model/fold_"
 
+# Batch size usado na geracao do modelo base
+batch_size = 50
+
 for i in range(0, 5):
     base_model = bases.saved_model_base.SavedModelBase(base_dir+str(i))
     converter = TFLiteTransferConverter(
         # num_classes, base_model, head_model, optimizer, train_batch_size
-        6, base_model, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=32
+        6, base_model, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=batch_size
     )
 
     converter.convert_and_save(target_dir+str(i))
