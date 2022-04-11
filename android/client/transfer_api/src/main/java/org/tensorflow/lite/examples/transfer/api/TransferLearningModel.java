@@ -411,7 +411,7 @@ public final class TransferLearningModel implements Closeable {
                     fp[0]++;
                     for(int classId = 1; classId < classes.size(); classId++){
                         if (predictions[classId].className.equals(sample.className)) fn[classId]++;
-                        tn[classId]++;
+                        else tn[classId]++;
                     }
                 }
                 //}
