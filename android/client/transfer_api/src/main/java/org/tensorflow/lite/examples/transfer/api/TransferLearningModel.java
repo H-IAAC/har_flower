@@ -441,7 +441,7 @@ public final class TransferLearningModel implements Closeable {
             float sens = (float) tp[i] / (tp[i] + fn[i]);
             if (!Float.isNaN(sens)) sensitivity[i] = sens;
             else sensitivity[i] = 1.0f;
-            ba[i] = 0.5f* sensitivity[i]*specificity[i];
+            ba[i] = 0.5f* (sensitivity[i]+specificity[i]);
             avgBA += ba[i];
         }
         avgBA = (float) avgBA/classes.size();
