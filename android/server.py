@@ -29,7 +29,7 @@ def fit_config(rnd: int):
     """
     config = {
         "batch_size": 50,
-        "local_epochs": 40,
+        "local_epochs": 1,
     }
     return config
 
