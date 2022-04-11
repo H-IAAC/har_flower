@@ -32,8 +32,8 @@ from tflite_convertor.tfltransfer import heads
 from tflite_convertor.tfltransfer import optimizers
 from tflite_convertor.tfltransfer.tflite_transfer_converter import TFLiteTransferConverter
 
-base_dir = "tflite_convertor/identity_model/saved_model_fold_"
-target_dir = "tflite_convertor/tflite_model/fold_"
+base_dir = "./model/saved_model_fold_"
+target_dir = "../android/client/app/src/main/assets/model/fold_"
 
 # Batch size usado na geracao do modelo base
 batch_size = 50
