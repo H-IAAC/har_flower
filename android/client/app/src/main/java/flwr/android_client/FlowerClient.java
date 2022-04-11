@@ -95,7 +95,8 @@ public class FlowerClient {
 
 
     private void loadDataExtrasensoryByClient(String file, Boolean isTraining) throws IOException {
-        List<String> labels = Arrays.asList("label:LYING_DOWN", "label:SITTING", "label:FIX_walking", "label:FIX_running", "label:BICYCLING", "label:SLEEPING");
+
+        List<String> labels = Arrays.asList("label:LYING_DOWN", "label:SITTING","label:FIX_walking", "label:FIX_running", "label:BICYCLING", "label:SLEEPING");
         ExtrasensoryDataset extrasensoryDataset = new ExtrasensoryDataset(this.context, file, isTraining, labels);
         for (String label : labels) {
             List<Valuedataset> valuesCat = extrasensoryDataset.getDataByCategory(label);
@@ -110,6 +111,8 @@ public class FlowerClient {
 
                 }
             }
+              Log.d("amostras", "tamanho  "+String.valueOf( valuesCat.size())  + label +" " + String.valueOf(isTraining));
+
         }
 
 

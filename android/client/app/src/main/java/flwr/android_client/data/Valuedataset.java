@@ -50,8 +50,8 @@ public class Valuedataset {
         this.line = line;
     }
 
-    public Valuedataset(float line, String idClass, String nameClass, List<Float> floatList) {
-        this.line = line;
+    public Valuedataset(float timestamp, String idClass, String nameClass, List<Float> floatList) {
+        this.line = timestamp;
         this.nameClass = nameClass;
         this.floatList=floatList;
         this.idClass =idClass;
