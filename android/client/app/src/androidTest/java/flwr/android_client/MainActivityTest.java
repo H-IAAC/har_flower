@@ -23,10 +23,10 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 public class MainActivityTest {
-    public final String CLIENT = "4";
-    public final String IP = "192.168.15.90";
+    public final String CLIENT = "2";
+    public final String IP = "192.168.15.5";
     public final String PORT = "8080";
-    public final String EXPERIMENT = "4";
+    public final String EXPERIMENT = "0";
     @Rule
     public ActivityTestRule<MainActivity> activityRule =
             new ActivityTestRule<>(MainActivity.class);
