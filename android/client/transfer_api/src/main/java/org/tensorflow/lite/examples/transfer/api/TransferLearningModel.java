@@ -396,25 +396,37 @@ public final class TransferLearningModel implements Closeable {
                 for (int classIdx = 0; classIdx < classes.size(); classIdx++) {
                     predictions[classIdx] = new Prediction(classesByIdx[classIdx], confidences[classIdx]);
                 }
-                Arrays.sort(predictions, (a, b) -> -Float.compare(a.confidence, b.confidence));
+                //Arrays.sort(predictions, (a, b) -> -Float.compare(a.confidence, b.confidence));
+                int maxIndex = maxIndexPredictions(predictions);
                 //if (predictions[0].className.equals(sample.className)) correct++;
-                //for(int classIdx = 0; classIdx < classes.size(); classIdx++){
-                if (predictions[0].className.equals(sample.className)) {
+                for(int classIdx = 0; classIdx < classes.size(); classIdx++){
+                    // predict correctly that class
+                    if (classIdx == maxIndex && predictions[classIdx].className.equals(sample.className)) {
 
-                    // true positive for the relevant class and true negative for all others
-                    tp[0]++;
-                    for(int classId = 1; classId < classes.size(); classId++){
-                        tn[classId]++;
-                    }
-                } else{
-                    // false positive for the relevant class, false negative for the ground truth class and true negative all others
-                    fp[0]++;
-                    for(int classId = 1; classId < classes.size(); classId++){
-                        if (predictions[classId].className.equals(sample.className)) fn[classId]++;
-                        else tn[classId]++;
-                    }
+                        // true positive for the relevant class and true negative for all others
+                        tp[classIdx]++;
+                        //for(int classId = 1; classId < classes.size(); classId++){
+                        //    tn[classId]++;
+                        //}
+                    // said that class was positive, but it wasn't
+                    } else if(classIdx == maxIndex){
+                        //
+                        fp[classIdx]++;
+                    // said that class was negative, but it wasn't
+                    } else if(predictions[classIdx].className.equals(sample.className)){
+                        fn[classIdx]++;
+                    //  said correctly that that class was negative
+                    } else if(!predictions[classIdx].className.equals(sample.className)){
+                        tn[classIdx]++;
+                    }/*else{
+                        // false positive for the relevant class, false negative for the ground truth class and true negative all others
+                        fp[0]++;
+                        for(int classId = 1; classId < classes.size(); classId++){
+                            if (predictions[classId].className.equals(sample.className)) fn[classId]++;
+                            else tn[classId]++;
+                        }
+                    }*/
                 }
-                //}
                 loss += getLLLoss(predictions, sample.className);
             }
         } finally {
@@ -422,15 +434,20 @@ public final class TransferLearningModel implements Closeable {
         }
         // per class
         for (int i=0; i < specificity.length; i++){
-            specificity[i] =  (float) tn[i] / (tn[i]+fp[i]);
-            sensitivity[i] = (float) tp[i] / (tp[i] + fn[i]);
+            float spec =  (float) tn[i] / (tn[i]+fp[i]);
+            if (!Float.isNaN(spec)) specificity[i] = spec;
+            else specificity[i] = 1.0f;
+
+            float sens = (float) tp[i] / (tp[i] + fn[i]);
+            if (!Float.isNaN(sens)) sensitivity[i] = sens;
+            else sensitivity[i] = 1.0f;
             ba[i] = 0.5f* sensitivity[i]*specificity[i];
             avgBA += ba[i];
         }
         avgBA = (float) avgBA/classes.size();
 
-        Log.e("Balanced Accuracy", (float) avgBA + "--" + loss / testingSamples.size() );
-        return Pair.create(loss/testingSamples.size(), (float) avgBA);
+        Log.e("Balanced Accuracy", avgBA + "--" + loss / testingSamples.size() );
+        return Pair.create(loss/testingSamples.size(), avgBA);
     }
 
     /**
@@ -448,6 +465,15 @@ public final class TransferLearningModel implements Closeable {
             }
         }
         return 0.0f;
+    }
+
+    private int maxIndexPredictions(Prediction[] array){
+        int maxAt = 0;
+
+        for (int i = 0; i < array.length; i++) {
+            maxAt = array[i].confidence > array[maxAt].confidence ? i : maxAt;
+        }
+        return maxAt;
     }
 
     /**
