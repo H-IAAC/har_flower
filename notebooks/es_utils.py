@@ -7,6 +7,7 @@ import numpy  as np
 import pandas as pd
 from sklearn.utils import shuffle
 
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.initializers import GlorotNormal
