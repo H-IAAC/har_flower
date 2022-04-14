@@ -1,4 +1,3 @@
-
 import os
 import glob
 import random
@@ -8,6 +7,7 @@ import numpy  as np
 import pandas as pd
 from sklearn.utils import shuffle
 
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.initializers import GlorotNormal
@@ -25,7 +25,6 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.impute import SimpleImputer
-#from skmultilearn.model_selection import iterative_train_test_split
 from skmultilearn.model_selection import IterativeStratification
 from sklearn.model_selection import KFold
 
@@ -36,22 +35,36 @@ fp = FalsePositives()
 fn = FalseNegatives()
 
 class MLPMultilabel:
-    def __init__(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> None:
-        self.model  = self.build_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2_val)
+    def __init__(self) -> None:
+        self.base_model = None
+        self.head_model = None
 
-    def train(self, x_train_norm, y_train):
-        self.model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
+    def set_base_model(self, input_dim, num_classes, neurons_1=16, neurons_2=None, l2=0.01) -> None:
+        self.base_model = self.build_base_model(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2,
+                                                l2_val=l2)
 
-    def evaluate(self, x_test_norm, y_test):
-        test_results = self.model.evaluate(x_test_norm, y_test, verbose=1)
-        ba = self.test_BA(x_test_norm, y_test)
-        print(f'Test results - Loss: {test_results[0]} - Averaged Balanced Accuracy: {test_results[1]}%')
+    def set_head_model(self, input_dim, num_classes, neurons=8, l2=0.01) -> None:
+        self.head_model = self.build_head_model(input_dim, num_classes, neurons=neurons, l2_val=l2)
+
+    def get_base_model(self) -> Sequential:
+        return self.base_model
+
+    def get_head_model(self) -> Sequential:
+        return self.head_model
+
+    def train(self, model, x_train_norm, y_train):
+        model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
+
+    def evaluate(self, model, x_test_norm, y_test):
+        test_results = model.evaluate(x_test_norm, y_test, verbose=1)
+        ba = self.test_BA(model, x_test_norm, y_test)
+        print(f'Test results - Loss - Accuracy: {test_results}')
         print(f'Averaged Balanced Accuracy: {ba:.6f}')
         
         return test_results, ba
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.base_model.predict(x)
 
     def test_BA(self, x_test_norm, y_test):
         y_pred = self.model.predict(x_test_norm)
@@ -74,9 +87,25 @@ class MLPMultilabel:
         #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
         return model
 
-    
-    def hypertunning(self, x_train_norm, y_train,):
-        
+    def build_head_model(self, input_dim, num_classes, neurons=8, l2_val=0.01) -> Sequential:
+        model = Sequential()
+        initializer = GlorotNormal()
+        model.add(Dense(neurons, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
+        model.add(Dense(num_classes, activation='sigmoid', kernel_initializer=initializer))
+
+        # Configure the model and start training
+        adam = Adam(learning_rate=0.1)
+
+        """
+        model.compile(loss='binary_crossentropy', optimizer=adam,
+                      metrics=[self.avg_multilabel_BA_2])  # metrics=[AUC(from_logits=True)])
+        """
+        model.compile(loss=tf.keras.losses.CategoricalCrossentropy(), optimizer=adam)
+
+        return model
+
+    def hypertunning(self, x_train_norm, y_train, ):
+
         partial_hyper = partial(self.hyper_model_build, input_dim=x_train_norm.shape[1], num_classes=y_train.shape[1])
         #tuner = kt.Hyperband(partial_hyper,
         #             objective= kt.Objective('val_avg_multilabel_BA_2', direction="max"),#'val_avg_multilabel_BA_2',
@@ -136,9 +165,8 @@ class MLPMultilabel:
         # Configure the model and start training
         #sgd = SGD(learning_rate=hp_learning_rate, decay=1e-2, momentum=hp_momentum)
         adam = Adam(learning_rate=hp_learning_rate)
-        #adam = Adam(learning_rate=hp_learning_rate, epsilon=hp_momentum)
-        model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=['categorical_accuracy'])
-        #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
+        model.compile(loss='binary_crossentropy', optimizer=adam,
+                      metrics=[self.avg_multilabel_BA_2])  # metrics=['categorical_accuracy'])
         return model
 
 
@@ -155,6 +183,9 @@ class DataProcessingExtrasensory:
     def split_train_test(self, test_size=0.20):
         #x_train, x_test, y_train, y_test = iterative_train_test_split(self.x, self.y, test_size = test_size)
         x_train, x_test, y_train, y_test = train_test_split(self.x, self.y, test_size=test_size, random_state=42)
+
+        print(f'X train-test shape: {x_train.shape} - X test shape: {x_test.shape}')
+        print(f'y train-test shape: {y_train.shape} - y test shape: {y_test.shape}')
 
         min_max_scaler = preprocessing.MinMaxScaler()
         input_shape = x_train.shape
@@ -183,8 +214,8 @@ class DataProcessingExtrasensory:
     def get_x_y_from_raw(self, raw):
         #raw = self.treat_missing(raw) #TODO: attention
         #raw = raw.fillna(0.0)
-        raw.drop(columns=['timestamp'], inplace=True)
         x = raw[raw.columns.drop(raw.filter(regex='label:'))]
+        x = x[x.columns.drop(x.filter(regex='timestamp'))]
         y = raw.filter(regex='label:')
         x = self.treat_missing(x)
         y = self.treat_missing(y)
@@ -204,16 +235,26 @@ class DataProcessingExtrasensory:
 
 ## -------------------------------
 class HAR:
-    def __init__(self, config : dict) -> None:
+    mlp = MLPMultilabel()
+
+    def __init__(self, config: dict) -> None:
         self.config = {
             'df_path': None,
             'df': None,
+            'gen_base_model': False,
+            'gen_head_model': True,
             'hypertunning': False,
             'hypertunning_params': {},
-            'neurons_1' : 32, 
-            'neurons_2' : None, 
-            'l2' : 0.01,
-            'labels' : ['label:SITTING', 'label:LYING_DOWN','label:OR_standing', 'label:FIX_walking']
+            'neurons_1_base': 32,
+            'neurons_1_head': 8,
+            'neurons_2': None,
+            'l2': 0.01,
+            'labels': ['label:OR_standing',
+                       'label:SITTING',
+                       'label:LYING_DOWN',
+                       'label:FIX_running',
+                       'label:FIX_walking',
+                       'label:BICYCLING']
         }
         
         for key in config:
@@ -222,22 +263,38 @@ class HAR:
         if self.config['df'] is None:
             self.data= DataProcessingExtrasensory(self.load(self.config['df_path']), labels=self.config['labels']) #TODO: attention
         else:
-            self.data= DataProcessingExtrasensory(self.config['df'], labels=self.config['labels']) #TODO: attention
-        
-        if not self.config['hypertunning']:
-            self.mlp = self.make_mlp(
-                self.data.x_train.shape[1], 
-                self.data.y_train.shape[1], 
-                neurons_1=self.config['neurons_1'], 
-                neurons_2=self.config['neurons_2'], 
+            self.data = DataProcessingExtrasensory(self.config['df'], labels=self.config['labels'])  # TODO: attention
+
+        # Make the base model
+        if self.config['gen_base_model'] is True:
+            if not self.config['hypertunning']:
+                self.base_model = self.make_base_model(
+                    self.data.x_train.shape[1],
+                    self.data.y_train.shape[1],
+                    neur_1=self.config['neurons_1_base'],
+                    neur_2=self.config['neurons_2'],
+                    l2_val=self.config['l2'])
+            else:
+                self.hypertunning()
+
+        # Make the head model
+        if self.config['gen_head_model'] is True:
+            self.head_model = self.make_head_model(
+                self.data.x_train.shape[1],
+                self.data.y_train.shape[1],
+                neur=self.config['neurons_1_head'],
                 l2_val=self.config['l2'])
         
         else:
             self.hypertunning()
 
+    def make_base_model(self, input_dim, num_classes, neur_1, neur_2, l2_val):
+        self.mlp.set_base_model(input_dim, num_classes, neurons_1=neur_1, neurons_2=neur_2, l2=l2_val)
+        return self.mlp.get_base_model()
 
-    def make_mlp(self, input_dim, num_classes, neurons_1, neurons_2, l2_val):
-        return MLPMultilabel(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2_val)
+    def make_head_model(self, input_dim, num_classes, neur, l2_val):
+        self.mlp.set_head_model(input_dim, num_classes, neurons=neur, l2=l2_val)
+        return self.mlp.get_head_model()
 
     def load_data(self):
         pass
@@ -246,8 +303,8 @@ class HAR:
         return pd.read_csv(df_path)
 
     def run(self):
-        self.mlp.train(self.data.x_train, self.data.y_train)
-        test_results, ba = self.mlp.evaluate(self.data.x_test, self.data.y_test)
+        self.mlp.train(self.base_model, self.data.x_train, self.data.y_train)
+        test_results, ba = self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
         return test_results, ba
 
     def hypertunning(self):
@@ -257,8 +314,7 @@ class HAR:
         return model, best_hps, best_epoch, test_results, ba
     
     def evaluate(self):
-        self.mlp.evaluate(self.data.x_test, self.data.y_test)
-
+        self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
 
 
 ## ------------------------- Functions not in a class-----------------------------------------------
@@ -430,6 +486,7 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
 
             raw = pd.read_csv(os.path.join(folderpath, test_user)).fillna(0.0)
             x = raw[raw.columns.drop(raw.filter(regex='label:'))]
+            x = x[x.columns.drop(x.filter(regex='timestamp'))]
             y = raw.filter(regex='label:')
             x_train, x_test, y_train, y_test  = train_test_split(x, y, test_size=0.2, random_state=42)
             #x_train, x_test, y_train, y_test = iterative_train_test_split(x, y, train_size =0.8)
