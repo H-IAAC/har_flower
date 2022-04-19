@@ -14,6 +14,7 @@ from tensorflow.keras.initializers import GlorotNormal
 from tensorflow import math
 from tensorflow import where, stack, zeros_like, boolean_mask
 from tensorflow.keras.backend import any 
+from tensorflow.keras.models import load_model
 import keras_tuner as kt
 from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras.callbacks import EarlyStopping
@@ -56,6 +57,9 @@ class MLPMultilabel:
     def test_BA(self, x_test_norm, y_test):
         y_pred = self.model.predict(x_test_norm)
         return avg_multilabel_BA_2(y_test, y_pred)
+
+    def load_model(self, model_path):
+        self.model = load_model(model_path, custom_objects={"avg_multilabel_BA_2": avg_multilabel_BA_2} )
 
     def build_model(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> Sequential:
         model = Sequential()
@@ -209,6 +213,7 @@ class HAR:
             'df_path': None,
             'df': None,
             'hypertunning': False,
+            'from_saved': None,
             'hypertunning_params': {},
             'neurons_1' : 32, 
             'neurons_2' : None, 
@@ -224,7 +229,7 @@ class HAR:
         else:
             self.data= DataProcessingExtrasensory(self.config['df'], labels=self.config['labels']) #TODO: attention
         
-        if not self.config['hypertunning']:
+        if not self.config['hypertunning'] and self.config['from_saved'] is None:
             self.mlp = self.make_mlp(
                 self.data.x_train.shape[1], 
                 self.data.y_train.shape[1], 
@@ -232,6 +237,14 @@ class HAR:
                 neurons_2=self.config['neurons_2'], 
                 l2_val=self.config['l2'])
         
+        elif self.config['from_saved'] is not None:
+            self.mlp = self.from_saved(
+                self.config['from_saved'], 
+                self.data.x_train.shape[1], 
+                self.data.y_train.shape[1], 
+                neurons_1=self.config['neurons_1'], 
+                neurons_2=self.config['neurons_2'], 
+                l2_val=self.config['l2'])
         else:
             self.hypertunning()
 
@@ -256,6 +269,12 @@ class HAR:
 
         return model, best_hps, best_epoch, test_results, ba
     
+
+    def from_saved(self, model_path, input_dim, num_classes, neurons_1, neurons_2, l2_val):
+        mlp = MLPMultilabel(input_dim, num_classes, neurons_1=neurons_1, neurons_2=neurons_2, l2_val=l2_val)
+        mlp.load_model(model_path)
+        return mlp
+
     def evaluate(self):
         self.mlp.evaluate(self.data.x_test, self.data.y_test)
 
