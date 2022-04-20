@@ -70,24 +70,29 @@ class MLPMultilabel:
         y_pred = self.model.predict(x_test_norm)
         return avg_multilabel_BA_2(y_test, y_pred)
 
-    def build_model(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> Sequential:
+    def build_base_model(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> Sequential:
+        """
         model = Sequential()
         initializer = GlorotNormal()
         model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
-        #model.add(Dense(neurons_1, input_dim=input_dim, activation='relu', activity_regularizer=l2(l2_val)))
         if neurons_2 is not None:
             model.add(Dense(neurons_2, activation='relu', kernel_initializer=initializer))
-        #model.add(Dropout(.2))
         model.add(Dense(num_classes, activation='sigmoid', kernel_initializer=initializer))
 
         # Configure the model and start training
-        sgd = SGD(learning_rate=0.1, decay=1e-2, momentum=0.5)
         adam = Adam(learning_rate=0.1)
         model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=[AUC(from_logits=True)])
-        #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
+        """
+
+        model = tf.keras.Sequential(
+            [tf.keras.Input(shape=(input_dim, )), tf.keras.layers.Lambda(lambda x: x)]
+        )
+        adam = Adam(learning_rate=0.1)
+        model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=[AUC(from_logits=True)])
         return model
 
-    def build_head_model(self, input_dim, num_classes, neurons=8, l2_val=0.01) -> Sequential:
+    def build_head_model(self, input_dim, num_classes, neurons=32, l2_val=0.01) -> Sequential:
+        """
         model = Sequential()
         initializer = GlorotNormal()
         model.add(Dense(neurons, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
@@ -96,11 +101,58 @@ class MLPMultilabel:
         # Configure the model and start training
         adam = Adam(learning_rate=0.1)
 
-        """
-        model.compile(loss='binary_crossentropy', optimizer=adam,
-                      metrics=[self.avg_multilabel_BA_2])  # metrics=[AUC(from_logits=True)])
-        """
         model.compile(loss=tf.keras.losses.CategoricalCrossentropy(), optimizer=adam)
+        """
+
+        """
+        model = Sequential()
+        initializer = GlorotNormal()
+        model.add(Dense(neurons, input_dim=input_dim, activation='relu', kernel_initializer=initializer))
+        model.add(Dense(16, activation='relu', kernel_initializer=initializer))
+        model.add(Dense(num_classes, activation='sigmoid', kernel_initializer=initializer))
+
+        # Configure the model and start training
+        adam = Adam(learning_rate=0.1)
+        model.compile(loss='categorical_crossentropy', optimizer=adam)
+        """
+
+        model = tf.keras.Sequential(
+            [
+                tf.keras.Input(shape=(input_dim, )),
+                tf.keras.layers.Dense(units=neurons, input_dim=input_dim, activation='relu'),
+                tf.keras.layers.Dense(units=16, activation='relu'),
+                tf.keras.layers.Dense(units=num_classes, activation="softmax"),
+            ]
+        )
+
+        """
+        model = tf.keras.Sequential(
+            [
+                tf.keras.Input(shape=(input_dim, )),
+                tf.keras.layers.Dense(units=neurons, input_dim=input_dim, activation='relu'),
+                tf.keras.layers.Dense(units=16, activation='relu'),
+                tf.keras.layers.Dense(units=num_classes, activation="softmax"),
+            ]
+        )
+        """
+
+        """
+        head = tf.keras.Sequential(
+            [
+                tf.keras.Input(shape=(32, 32, 3)),
+                tf.keras.layers.Conv2D(6, 5, activation="relu"),
+                tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                tf.keras.layers.Conv2D(16, 5, activation="relu"),
+                tf.keras.layers.Flatten(),
+                tf.keras.layers.Dense(units=120, activation="relu"),
+                tf.keras.layers.Dense(units=84, activation="relu"),
+                tf.keras.layers.Dense(units=10, activation="softmax"),
+            ]
+        )
+        """
+
+        adam = Adam(learning_rate=0.1)
+        model.compile(loss="categorical_crossentropy", optimizer=adam)
 
         return model
 
