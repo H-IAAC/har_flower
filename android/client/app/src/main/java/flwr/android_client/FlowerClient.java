@@ -40,6 +40,7 @@ public class FlowerClient {
     public ByteBuffer[] getWeights() {
         return tlModel.getParameters();
     }
+
     public Pair<ByteBuffer[], Integer> fit(ByteBuffer[] weights, int epochs) {
         this.local_epochs = epochs;
         tlModel.updateParameters(weights);
@@ -102,7 +103,7 @@ public class FlowerClient {
             List<Valuedataset> valuesCat = extrasensoryDataset.getDataByCategory(label);
             for (Valuedataset valueD : valuesCat) {
                 float[] floatArray1 = ArrayUtils.toPrimitive(valueD.getFloatList().toArray(new Float[0]), 0.0F);
-                // Log.d(TAG, "tamanho  "+String.valueOf( floatArray1.length) );
+                // Log.d(TAG, "tamanho  "+ " " + valueD.getNameClass() + " " + String.valueOf( isTraining ) );
                 try {
                     this.tlModel.addSample(floatArray1, valueD.getNameClass(), isTraining).get();
                 } catch (ExecutionException e) {
@@ -112,10 +113,7 @@ public class FlowerClient {
                 }
             }
               Log.d("amostras", "tamanho  "+String.valueOf( valuesCat.size())  + label +" " + String.valueOf(isTraining));
-
         }
-
-
     }
 }
 
