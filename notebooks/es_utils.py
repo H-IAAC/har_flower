@@ -73,7 +73,7 @@ class MLPMultilabel:
 
         # Configure the model and start training
         sgd = SGD(learning_rate=0.1, decay=1e-2, momentum=0.5)
-        adam = Adam(learning_rate=0.1)
+        adam = Adam(learning_rate=1e-3)
         model.compile(loss='binary_crossentropy', optimizer=adam, metrics=[avg_multilabel_BA_2])#metrics=[AUC(from_logits=True)])
         #model.compile(loss=nan_bce, optimizer=adam, metrics=['categorical_accuracy'])
         return model

@@ -5,7 +5,7 @@ import es_utils as utils
 import getopt 
 
 # Load model and data (MobileNetV2, CIFAR-10)
-def run_client(df_path):
+def run_client(df_path, model_path):
     #model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
     #model.compile("adam", "sparse_categorical_crossentropy", metrics=["accuracy"])
     #(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
@@ -13,7 +13,7 @@ def run_client(df_path):
     config = {
         'df_path': df_path,
         'labels': labels,
-        'neurons_1' : 44, 
+        'from_saved': model_path,
     }
     har = utils.HAR(config)
 
@@ -45,25 +45,36 @@ class CifarClient(fl.client.NumPyClient):
 
 
 if __name__ == '__main__':
-    #args = sys.argv[1:]
-    #user = args[0]
-
+    
+    
+    #exp =None
+    #user = None
     #run_client(f'../input/{user}.features_labels.csv')
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hu:f:", ["help=", "user", "full"])
+        opts, args = getopt.getopt(sys.argv[1:], "he:u:", ["help", "exp=", "user="])
     except:
         print('call with -h or --help to see the options')
         sys.exit(2)
 
+    #print(opts)
+    #print(len(opts))
+
     for opt, arg in opts:
-        if opt in ('-h', '--help'):
+        print('it')
+        if opt in ['-h', '--help']:
             print('help')
             sys.exit(0)
-        if opt in ('-u', '--user'):
-            run_client(f'../input/{arg}.features_labels.csv')
-            sys.exit(0)
-        if opt in ('-f', '--full'):
-            run_client(f'{arg}')
-            sys.exit(0)
+        elif opt in ['-e', '--exp']:
+            exp = arg
+            #print('here')
+        elif opt in ['-u', '--user']:
+            #print('nop')
+            user = arg
+            #print('finally')
         
-            
+        
+    print(exp)
+    print(user)
+    run_client(f'../full_data/{user}.features_labels.csv', 
+    f'../full_data/exp_/saved_model_fold_{exp}')
+    sys.exit(0)
