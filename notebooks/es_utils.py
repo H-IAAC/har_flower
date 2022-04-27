@@ -456,6 +456,6 @@ if __name__ == '__main__':
     #har = HAR(config)
     #har.run()
 
-    create_k_folds_n_users(2, 40, '/home/wander/OtherProjects/har_flower/full_data')
+    create_k_folds_n_users(2, 40, '../full_data')
     pass
     
