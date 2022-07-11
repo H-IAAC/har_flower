@@ -52,22 +52,22 @@ class MLPMultilabel:
     def get_head_model(self) -> Sequential:
         return self.head_model
 
-    def train(self, model, x_train_norm, y_train):
-        model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
+    def train(self, x_train_norm, y_train):
+        self.head_model.fit(x_train_norm, y_train, epochs=40, batch_size=10, verbose=1, validation_split=0.2)
 
-    def evaluate(self, model, x_test_norm, y_test):
-        test_results = model.evaluate(x_test_norm, y_test, verbose=1)
-        ba = self.test_BA(model, x_test_norm, y_test)
+    def evaluate(self, x_test_norm, y_test):
+        test_results = self.head_model.evaluate(x_test_norm, y_test, verbose=1)
+        ba = self.test_BA(x_test_norm, y_test)
         print(f'Test results - Loss - Accuracy: {test_results}')
         print(f'Averaged Balanced Accuracy: {ba:.6f}')
         
         return test_results, ba
 
     def predict(self, x):
-        return self.base_model.predict(x)
+        return self.head_model.predict(x)
 
     def test_BA(self, x_test_norm, y_test):
-        y_pred = self.model.predict(x_test_norm)
+        y_pred = self.head_model.predict(x_test_norm)
         return avg_multilabel_BA_2(y_test, y_pred)
 
     def build_base_model(self, input_dim, num_classes, neurons_1=32, neurons_2=None, l2_val=0.01) -> Sequential:
@@ -218,7 +218,7 @@ class MLPMultilabel:
         #sgd = SGD(learning_rate=hp_learning_rate, decay=1e-2, momentum=hp_momentum)
         adam = Adam(learning_rate=hp_learning_rate)
         model.compile(loss='binary_crossentropy', optimizer=adam,
-                      metrics=[self.avg_multilabel_BA_2])  # metrics=['categorical_accuracy'])
+                      metrics=[avg_multilabel_BA_2])  # metrics=['categorical_accuracy'])
         return model
 
 
@@ -320,7 +320,7 @@ class HAR:
         # Make the base model
         if self.config['gen_base_model'] is True:
             if not self.config['hypertunning']:
-                self.base_model = self.make_base_model(
+                self.make_base_model(
                     self.data.x_train.shape[1],
                     self.data.y_train.shape[1],
                     neur_1=self.config['neurons_1_base'],
@@ -331,7 +331,7 @@ class HAR:
 
         # Make the head model
         if self.config['gen_head_model'] is True:
-            self.head_model = self.make_head_model(
+            self.make_head_model(
                 self.data.x_train.shape[1],
                 self.data.y_train.shape[1],
                 neur=self.config['neurons_1_head'],
@@ -355,8 +355,8 @@ class HAR:
         return pd.read_csv(df_path)
 
     def run(self):
-        self.mlp.train(self.base_model, self.data.x_train, self.data.y_train)
-        test_results, ba = self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
+        self.mlp.train(self.data.x_train, self.data.y_train)
+        test_results, ba = self.mlp.evaluate(self.data.x_test, self.data.y_test)
         return test_results, ba
 
     def hypertunning(self):
@@ -366,7 +366,7 @@ class HAR:
         return model, best_hps, best_epoch, test_results, ba
     
     def evaluate(self):
-        self.mlp.evaluate(self.base_model, self.data.x_test, self.data.y_test)
+        self.mlp.evaluate(self.data.x_test, self.data.y_test)
 
 
 ## ------------------------- Functions not in a class-----------------------------------------------
@@ -559,7 +559,7 @@ if __name__ == '__main__':
     config = {
         #'df_path': '/home/wander/OtherProjects/har_flower/input/user1.features_labels.csv',
         #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv',
-        'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        'df_path': '/home/noroot/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
         #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
         #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
         #'labels': labels
@@ -568,6 +568,6 @@ if __name__ == '__main__':
     #har = HAR(config)
     #har.run()
 
-    create_k_folds_n_users(2, 40, '/home/wander/OtherProjects/har_flower/full_data')
+    create_k_folds_n_users(2, 40, '/home/noroot/full_data')
     pass
     
