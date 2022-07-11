@@ -406,8 +406,9 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
         for csv in fold_list_train[1:]:
             fold_df_train = fold_df_train.append(pd.read_csv(csv))
 
+        spl = csv.split(f'{folderpath}/')
         fold_list_test = np.setdiff1d(all_csvs, fold_list_train)
-        fold_list_test = [csv.split(f'{folderpath}/')[1] for csv in fold_list_test]
+        fold_list_test = [spl[0] for csv in fold_list_test]
 
         # Path
         path_exp = os.path.join(folderpath, f'exp_/fold_{i}')

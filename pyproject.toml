@@ -5,18 +5,25 @@ requires = [
 build-backend = "poetry.masonry.api"
 
 [tool.poetry]
-name = "har_flower"
+name = "android_flwr_tensorflow"
 version = "0.1.0"
-description = "Keras Federated Learning Quickstart with Flower"
+description = "Android Example"
 authors = ["The Flower Authors <enquiries@flower.dev>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8.2,<3.10"
-flwr = "^0.18.0"
-numpy = "^1.22.3"
-pandas = "^1.4"
-scikit-learn = "^1.0.1"
+python = ">=3.8,<3.11"
+flwr = "^0.17.0"
 # flwr = { path = "../../", develop = true }  # Development
-tensorflow-cpu = "^2.6.2"
-keras_tuner = "^1.1.2"
+pandas = "^1.4.3"
+numpy = "^1.23.0"
+keras-tuner = "^1.1.2"
 scikit-multilearn = "^0.2.0"
+sklearn = "^0.0"
+jupyter-client = "^7.3.4"
+MarkupSafe = "^2.1.1"
+notebook = "^6.4.12"
+traitlets = "^5.3.0"
+jupyterlab = "^3.4.3"
+tensorflow-gpu = "^2.9.1"
+
+[tool.poetry.dev-dependencies]
