@@ -179,7 +179,7 @@ class MLPMultilabel:
         best_hps=tuner.get_best_hyperparameters(num_trials=1)[0]
 
         model = tuner.hypermodel.build(best_hps)
-        history = model.fit(x_train_norm, y_train, epochs=100, batch_size=50, shuffle=True, validation_split=0.2)
+        history = model.fit(x_train_norm, y_train, epochs=100, batch_size=32, shuffle=True, validation_split=0.2)
 
         val_acc_per_epoch = history.history['val_avg_multilabel_BA_2']
         best_epoch = val_acc_per_epoch.index(max(val_acc_per_epoch)) + 1
