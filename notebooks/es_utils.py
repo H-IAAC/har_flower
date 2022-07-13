@@ -1,3 +1,4 @@
+
 import os
 import glob
 import random
@@ -320,7 +321,7 @@ class HAR:
         # Make the base model
         if self.config['gen_base_model'] is True:
             if not self.config['hypertunning']:
-                self.base_model = self.make_base_model(
+                mlp.base_model = self.make_base_model(
                     self.data.x_train.shape[1],
                     self.data.y_train.shape[1],
                     neur_1=self.config['neurons_1_base'],
@@ -331,7 +332,7 @@ class HAR:
 
         # Make the head model
         if self.config['gen_head_model'] is True:
-            self.head_model = self.make_head_model(
+            mlp.head_model = self.make_head_model(
                 self.data.x_train.shape[1],
                 self.data.y_train.shape[1],
                 neur=self.config['neurons_1_head'],
@@ -555,19 +556,19 @@ def create_k_folds_n_users(k_folds: int, n_users: int, folderpath: str):
     return all_dfs
 
 if __name__ == '__main__':
-    #a = create_k_folds_n_users(5, 3, '/home/wander/OtherProjects/har_flower/sample_data')
+    #a = create_k_folds_n_users(5, 3, '/home/noroot/sample_data')
     config = {
-        #'df_path': '/home/wander/OtherProjects/har_flower/input/user1.features_labels.csv',
-        #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv',
-        'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
-        #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
-        #'df_path': '/home/wander/OtherProjects/har_flower/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        #'df_path': '/home/noroot/input/user1.features_labels.csv',
+        #'df_path': '/home/noroot/sample_data/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv',
+        'df_path': '/home/noroot/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        #'df_path': '/home/noroot/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
+        #'df_path': '/home/noroot/sample_data/0BFC35E2-4817-4865-BFA7-764742302A2D.features_labels.csv',
         #'labels': labels
 }
     
     #har = HAR(config)
     #har.run()
 
-    create_k_folds_n_users(2, 40, '/home/wander/OtherProjects/har_flower/full_data')
+    create_k_folds_n_users(2, 40, '../full_data')
     pass
     
