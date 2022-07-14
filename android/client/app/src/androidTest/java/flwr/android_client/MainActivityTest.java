@@ -10,6 +10,8 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+
+import android.util.Log;
 import android.view.View;
 import androidx.test.espresso.ViewAssertion;
 import androidx.test.filters.LargeTest;
@@ -20,19 +22,28 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.File;
+
+import br.org.eldorado.hiaac.profiling.Profiling;
+
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 public class MainActivityTest {
     public final String CLIENT = "2";
-    public final String IP = "192.168.15.5";
+    public final String IP = "192.168.15.115";
     public final String PORT = "8080";
     public final String EXPERIMENT = "0";
+    public final int EXPERIMENT_TIME_MINS = 1;
+
     @Rule
     public ActivityTestRule<MainActivity> activityRule =
             new ActivityTestRule<>(MainActivity.class);
 
     @Test
     public void testTrainFederated() {
+        Profiling p = Profiling.getInstance();
+        p.start();
+
         onView(withId(R.id.serverIP)).perform(replaceText(IP));
         onView(withId(R.id.serverPort)).perform(replaceText(PORT));
         onView(withId(R.id.device_id_edit_text)).perform(click());
@@ -48,7 +59,9 @@ public class MainActivityTest {
         onView(withId(R.id.connect)).perform(click());
         waitForView(withId(R.id.trainFederated), matches(isEnabled()), 20);
         onView(withId(R.id.trainFederated)).perform(click());
-        waitFor(5*60*1000);
+        waitFor(EXPERIMENT_TIME_MINS*60*1000);
+        File f = p.finishProfiling();
+        Log.d("Test", "File location: " + f.getPath());
     }
 
     private void waitForView(Matcher<View> viewMatcher, ViewAssertion result, int seconds) {
