@@ -376,39 +376,6 @@ public final class TransferLearningModel implements Closeable {
         parameterLock.readLock().lock();
         float loss = 0.0f;
         int correct = 0;
-        try {
-            for (int sampleIdx = 0; sampleIdx < testingSamples.size(); sampleIdx++) {
-                TestingSample sample = testingSamples.get(sampleIdx);
-                confidences = inferenceModel.runInference(sample.bottleneck, modelParameters);
-
-                for (int classIdx = 0; classIdx < classes.size(); classIdx++) {
-                    predictions[classIdx] = new Prediction(classesByIdx[classIdx], confidences[classIdx]);
-                }
-                Arrays.sort(predictions, (a, b) -> -Float.compare(a.confidence, b.confidence));
-//                Log.d("Correct: classname", predictions[0].className + " " + sample.className);
-                if (predictions[0].className.equals(sample.className)) {
-//                    Log.d("Correct: ", String.valueOf(correct));
-                    correct++;
-                }
-
-                loss += getLLLoss(predictions, sample.className);
-
-           }
-        } finally {
-            parameterLock.readLock().unlock();
-        }
-
-        Log.e("Accuracy", (float) correct/testingSamples.size() + "--" + loss / testingSamples.size() );
-        return Pair.create(loss/testingSamples.size(), (float) correct /testingSamples.size());
-    }
-
-    // TODO: see here
-    public Pair<Float, Float> getTestStatisticsWander() {
-        float[] confidences;
-        Prediction[] predictions = new Prediction[classes.size()];
-        parameterLock.readLock().lock();
-        float loss = 0.0f;
-        int correct = 0;
         int[] tp = new int[classes.size()]; //new ArrayList(Collections.nCopies(classes.size(), 0)); //#int[classes.size()];
         int[] fp = new int[classes.size()];
         int[] tn = new int[classes.size()];
