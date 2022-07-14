@@ -18,7 +18,7 @@ def main() -> None:
     )
 
     # Start Flower server for 10 rounds of federated learning
-    fl.server.start_server("[::]:8080", config={"num_rounds": 10}, strategy=strategy)
+    fl.server.start_server("[::]:8080", config={"num_rounds": 20}, strategy=strategy)
 
 
 def fit_config(rnd: int):
@@ -29,7 +29,7 @@ def fit_config(rnd: int):
     """
     config = {
         "batch_size": 1,
-        "local_epochs": 10,
+        "local_epochs": 200,
     }
     return config
 
