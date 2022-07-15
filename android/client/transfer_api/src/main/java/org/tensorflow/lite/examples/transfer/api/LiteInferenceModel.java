@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 class LiteInferenceModel implements Closeable {
@@ -44,6 +45,12 @@ class LiteInferenceModel implements Closeable {
     System.arraycopy(modelParameters, 0, inputs, 1, modelParameters.length);
 
     modelWrapper.getInterpreter().runForMultipleInputsOutputs(inputs, outputs);
+
+    byte[] comp = {0, 0, 0, 0, 62, -116, 120, 62, 127, 72, -9, 62, -41, -102, -27, 61, 29, -62, 82, 60, -92, -36, 82, 60, 109, -69, 11, 62, 0, 0, 0};
+    if (!Objects.equals(outputs.get(0), comp)) {
+        comp[0] = 30;
+    }
+
     bottleneck.rewind();
     for (ByteBuffer buffer : modelParameters) {
       buffer.rewind();

@@ -9,9 +9,9 @@ def main() -> None:
     strategy = fl.server.strategy.FedAvgAndroid(
         fraction_fit=1.0,
         fraction_eval=1.0,
-        min_fit_clients=2,
-        min_eval_clients=2,
-        min_available_clients=2,
+        min_fit_clients=1,
+        min_eval_clients=1,
+        min_available_clients=1,
         eval_fn=None,
         on_fit_config_fn=fit_config,
         initial_parameters=None,
@@ -28,8 +28,8 @@ def fit_config(rnd: int):
     local epoch, increase to two local epochs afterwards.
     """
     config = {
-        "batch_size": 50,
-        "local_epochs": 1,
+        "batch_size": 1,
+        "local_epochs": 200,
     }
     return config
 

@@ -172,14 +172,16 @@ print(bas)
 
 config = {
     'df_path': "../input/extrasensory/primary/0A986513-7828-4D53-AA1F-E02D6DF9561B.features_labels.csv",
+    'gen_base_model': True,
+    'gen_head_model': True,
     'neurons_1_base': 32,
-    'neurons_1_head': 8,
+    'neurons_1_head': 32,
     'neurons_2': 16,
     'labels': labels
 }
 
 har = utils.HAR(config)
-har.run()
+#har.run()
 
 
 # In[6]:
@@ -202,7 +204,7 @@ base_model.save("tflite_convertor/identity_model", save_format="tf")
 base_path = bases.saved_model_base.SavedModelBase("tflite_convertor/identity_model")
 converter = TFLiteTransferConverter(
     # num_classes, base_model, head_model, optimizer, train_batch_size
-    6, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=32
+    6, base_path, heads.KerasModelHead(har.head_model), optimizers.SGD(1e-1), train_batch_size=1
 )
 
 converter.convert_and_save("tflite_convertor/tflite_model")

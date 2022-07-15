@@ -2,14 +2,14 @@ apply plugin: 'com.google.protobuf'
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 31
     buildToolsVersion "29.0.0"
 
     defaultConfig {
         applicationId "flwr.android_client"
         // API level 14+ is required for TLS since Google Play Services v10.2
-        minSdkVersion 24
-        targetSdkVersion 29
+        minSdkVersion 27
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -41,6 +41,9 @@ android {
         textReport true
         textOutput "stdout"
     }
+    buildFeatures {
+        mlModelBinding true
+    }
 }
 
 protobuf {
@@ -66,6 +69,8 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
+    implementation 'org.tensorflow:tensorflow-lite-metadata:0.1.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
@@ -85,6 +90,7 @@ dependencies {
 
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'com.opencsv:opencsv:4.4'
+    implementation 'com.github.H-IAAC:sensor-toolkit:v1.71'
 }
 
 def modelUrl = 'https://www.dropbox.com/s/tubgpepk2q6xiny/models.zip?dl=1'

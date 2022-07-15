@@ -166,7 +166,6 @@ public final class TransferLearningModel implements Closeable {
         }
 
         try {
-
             initializeModel = new LiteInitializeModel(modelLoader.loadInitializeModel());
             bottleneckModel = new LiteBottleneckModel(modelLoader.loadBaseModel());
             trainHeadModel = new LiteTrainHeadModel(modelLoader.loadTrainModel());
@@ -371,7 +370,6 @@ public final class TransferLearningModel implements Closeable {
         }
     }
 
-    // TODO: see here
     public Pair<Float, Float> getTestStatistics() {
         float[] confidences;
         Prediction[] predictions = new Prediction[classes.size()];

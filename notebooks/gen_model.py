@@ -36,7 +36,7 @@ base_dir = "./model/saved_model_fold_"
 target_dir = "../android/client/app/src/main/assets/model/fold_"
 
 # Batch size usado na geracao do modelo base
-batch_size = 50
+batch_size = 1
 
 for i in range(0, 5):
     base_model = bases.saved_model_base.SavedModelBase(base_dir+str(i))

@@ -36,11 +36,9 @@ public class ExtrasensoryDataset {
         }
         List<String[]> dataX = extrasensoryGetData(context, fileX);
         List<String[]> datay = extrasensoryGetData(context, fileY);
-        Log.d("file: ", file + " size X: " + String.valueOf(dataX.size()) + " size Y: " + String.valueOf(datay.size()));
+        Log.d("class ExtrasensoryDataset file: ", file + " size X: " + String.valueOf(dataX.size()) + " size Y: " + String.valueOf(datay.size()));
 
         mixValues(dataX,datay);
-
-
     }
 
 
