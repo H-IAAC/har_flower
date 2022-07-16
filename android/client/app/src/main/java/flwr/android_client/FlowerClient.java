@@ -8,19 +8,13 @@ import android.widget.Spinner;
 
 import androidx.lifecycle.MutableLiveData;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import flwr.android_client.connectiontcp.ClientThread;
 import flwr.android_client.data.ExtrasensoryDataset;
-import flwr.android_client.data.Valuedataset;
 
 public class FlowerClient {
 
@@ -31,10 +25,15 @@ public class FlowerClient {
     private final ConditionVariable isTraining = new ConditionVariable();
     private static String TAG = "Flower";
     private int local_epochs = 1;
+    boolean manifold = false;
+    ExtrasensoryDataset extrasensoryDataset;
 
-    public FlowerClient(Context context, Spinner experimentID) {
-        this.tlModel = new TransferLearningModelWrapper(context, experimentID);
+    public FlowerClient(Context context, Spinner experimentID, boolean manifold) {
+        this.tlModel = new TransferLearningModelWrapper(context, experimentID,manifold);
         this.context = context;
+        this.manifold=manifold;
+         extrasensoryDataset = new ExtrasensoryDataset(this.context);
+
     }
 
     public ByteBuffer[] getWeights() {
@@ -69,21 +68,22 @@ public class FlowerClient {
 
     public void loadDataExtrasensory(int device_id, String experimentid) {
         // new Thread(new ClientThread("start")).start();
+
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(this.context.getAssets().open("data/extrasensory/fold_" + experimentid + "/extrasensory_partition_" + (device_id - 1) + ".txt")));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(this.context.getAssets().open("data/extrasensory1/fold_" + experimentid + "/extrasensory_partition_" + (device_id - 1) + ".txt")));
             String line;
             int i = 0;
             while ((line = reader.readLine()) != null) {
                 i++;
-                loadDataExtrasensoryByClient("data/extrasensory" + "/" + line, true);
+                loadDataExtrasensoryByClient("data/extrasensory1" + "/" + line, true);
             }
             reader.close();
 
             i = 0;
-            reader = new BufferedReader(new InputStreamReader(this.context.getAssets().open("data/extrasensory/fold_" + experimentid + "/extrasensory_partition_" + (device_id - 1) + ".txt")));
+           reader = new BufferedReader(new InputStreamReader(this.context.getAssets().open("data/extrasensory1/fold_" + experimentid + "/extrasensory_partition_" + (device_id - 1) + ".txt")));
             while ((line = reader.readLine()) != null) {
                 i++;
-                loadDataExtrasensoryByClient("data/extrasensory" + "/" + line, false);
+                loadDataExtrasensoryByClient("data/extrasensory1" + "/" + line, false);
             }
             reader.close();
 
@@ -96,25 +96,24 @@ public class FlowerClient {
 
 
     private void loadDataExtrasensoryByClient(String file, Boolean isTraining) throws IOException {
+        float[][] data = extrasensoryDataset.getValues(file,isTraining,manifold);
 
-        List<String> labels = Arrays.asList("label:LYING_DOWN", "label:SITTING","label:FIX_walking", "label:FIX_running", "label:BICYCLING", "label:SLEEPING");
-        ExtrasensoryDataset extrasensoryDataset = new ExtrasensoryDataset(this.context, file, isTraining, labels);
-        for (String label : labels) {
-            List<Valuedataset> valuesCat = extrasensoryDataset.getDataByCategory(label);
-            for (Valuedataset valueD : valuesCat) {
-                float[] floatArray1 = ArrayUtils.toPrimitive(valueD.getFloatList().toArray(new Float[0]), 0.0F);
-                // Log.d(TAG, "tamanho  "+ " " + valueD.getNameClass() + " " + String.valueOf( isTraining ) );
+        String[] labels = ExtrasensoryDataset.getLabelsVAlues();
+        for (int i = 0; i < data.length-1; i++) {
+
                 try {
-                    this.tlModel.addSample(floatArray1, valueD.getNameClass(), isTraining).get();
+                    Log.d("amostras", "tamanho  "+String.valueOf( i)  +" " +labels[i]+" " + String.valueOf(isTraining));
+                    this.tlModel.addSample(data[i], labels[i], isTraining).get();
                 } catch (ExecutionException e) {
+
                     throw new RuntimeException("Failed to add sample to model", e.getCause());
                 } catch (InterruptedException e) {
 
                 }
             }
-              Log.d("amostras", "tamanho  "+String.valueOf( valuesCat.size())  + label +" " + String.valueOf(isTraining));
+              Log.d("amostras", "tamanho  "+String.valueOf( data.length)  + labels.length +" " + String.valueOf(isTraining));
         }
-    }
+
 }
 
 

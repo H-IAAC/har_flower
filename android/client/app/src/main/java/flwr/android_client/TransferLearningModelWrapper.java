@@ -41,11 +41,16 @@ public class TransferLearningModelWrapper implements Closeable {
     private volatile LossConsumer lossConsumer;
     private Context context;
     private String  experiment;
-    TransferLearningModelWrapper(Context context, Spinner experimentID) {
+    TransferLearningModelWrapper(Context context, Spinner experimentID,boolean umap) {
+        String directoryName = "tflite_model";
+       if(umap){
+           directoryName= "tflite_model_umap";
+
+       }
         model =
                 new TransferLearningModel(
-                        new AssetModelLoader(context, "model",experimentID.getSelectedItem().toString()),
-                        Arrays.asList("label:LYING_DOWN","label:SITTING","label:FIX_walking","label:FIX_running","label:BICYCLING","label:SLEEPING"));
+                        new AssetModelLoader(context, directoryName,experimentID.getSelectedItem().toString()),
+                        Arrays.asList("label:OR_standing","label:SITTING","label:LYING_DOWN","label:FIX_running","label:FIX_walking","label:BICYCLING"));
         this.context = context;
 
     }

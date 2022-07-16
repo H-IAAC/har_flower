@@ -3,103 +3,98 @@ package flwr.android_client.data;
 import android.content.Context;
 import android.util.Log;
 
-import com.opencsv.CSVParser;
-import com.opencsv.CSVParserBuilder;
-import com.opencsv.CSVReaderBuilder;
+import com.opencsv.CSVReader;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
+import java.nio.charset.Charset;
 import java.util.List;
 
+import manifold.umap.Umap;
+
 public class ExtrasensoryDataset {
-    private final List<String> labels;
-    private String[] allColumnNamesY;
+    private static String[] labelsVAlues;
+    private final Context context;
+    private Umap umap = null;
 
-
-
-    List<Valuedataset> listAllXY = new ArrayList<Valuedataset>();
+    private float[][] data;
     String TAG = "Extrasensory";
 
+    public static String[] getLabelsVAlues() {
+        return labelsVAlues;
+    }
 
-    public ExtrasensoryDataset(Context context, String file, Boolean isTraining, List<String> labels) {
-        this.labels = labels;
-        String fileX;
-        String fileY;
+    public static void setLabelsVAlues(String[] labelsVAlues) {
+        ExtrasensoryDataset.labelsVAlues = labelsVAlues;
+    }
+
+    public float[][] getData() {
+        return data;
+    }
+
+    public void setData(float[][] data) {
+        this.data = data;
+    }
+
+
+
+    public float[][] getValues(String file, Boolean isTraining, boolean umapb){
 
         if (isTraining) {
-            fileX = file + "x_train.csv";
-            fileY = file + "y_train.csv";
+            file = file + "train.csv";
+            data = buildTable(this.context, file);
+            if (umapb) {
+                this.umap = new Umap();
+                this.umap.setNumberComponents(5);         // number of dimensions in result
+//                 umap.setNumberNearestNeighbours(10);
+                this.umap.setThreads(1);
+                this.umap.setVerbose(true);
+                data = this.umap.fitTransform(data);
+
+            }
 
         } else {
-            fileX = file + "x_test.csv";
-            fileY = file + "y_test.csv";
-        }
-        List<String[]> dataX = extrasensoryGetData(context, fileX);
-        List<String[]> datay = extrasensoryGetData(context, fileY);
-        Log.d("class ExtrasensoryDataset file: ", file + " size X: " + String.valueOf(dataX.size()) + " size Y: " + String.valueOf(datay.size()));
+            file = file + "test.csv";
+            data = buildTable(context, file);
 
-        mixValues(dataX,datay);
+            if (umapb) {
+                data = this.umap.transform(data);
+            }
+        }
+
+
+        Log.d(TAG, "manifold");
+
+
+        Log.d("class ExtrasensoryDataset file: ", file + " size X: " + String.valueOf(data.length));
+    return data    ;
+    }
+    public ExtrasensoryDataset(Context context) {
+this.context=context;
     }
 
 
-    public List<String[]> extrasensoryGetData(Context context, String file) {
-         List<String[]> allDataInput = null;
-
+    public static float[][] buildTable(Context context, String csvPathFromResource) {
         try {
-            InputStreamReader reader = new InputStreamReader(context.getAssets().open(file));
-            CSVParser parser = new CSVParserBuilder().withSeparator(',').build();
-            com.opencsv.CSVReader csvReader = new CSVReaderBuilder(reader)
-                    .withCSVParser(parser)
-                    .build();
-            allDataInput = csvReader.readAll();
-            allColumnNamesY = allDataInput.remove(0);
-            reader.close();
-            csvReader.close();
-        } catch (Exception e) {
+            InputStream is = context.getAssets().open(csvPathFromResource);
+            InputStreamReader reader = new InputStreamReader(is, Charset.forName("UTF-8"));
+            List<String[]> csv = new CSVReader(reader).readAll();
+            csv.remove(0);
+            labelsVAlues = new String[csv.size()];
+            float[][] csv_double = new float[csv.size()][csv.get(0).length - 2];
+            for (int i = 0; i < csv.size() - 1; i++) {
+                for (int j = 1; j < csv.get(i).length - 1; j++) {
+                    csv_double[i][j - 1] = Float.parseFloat(csv.get(i)[j]);
+                }
+                labelsVAlues[i] = csv.get(i)[227];
+            }
+            return csv_double;
+
+        } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
-return allDataInput;
-    }
-
-
-    public List<Valuedataset> getDataByCategory(String label) {
-        List<Valuedataset> listcategoryXY = new ArrayList<Valuedataset>();
-        for (int i = 0; i < listAllXY.size(); i++) {
-
-            if (listAllXY.get(i).nameClass.contentEquals(label)) {
-                listcategoryXY.add(listAllXY.get(i));
-            }
-
-        }
-        return listcategoryXY;
-    }
-
-
-    void mixValues(List<String[]> dataX,List<String[]> dataY) {
-               for (int i = 0; i < dataX.size(); i++) {
-            List<Float> floatvalues = getFloatValues(dataX.get(i));
-            getLabels(dataY.get(i), floatvalues);
-
-
-        }
-    }
-
-    List<Float> getFloatValues(String[] strings) {
-        List<Float> floatList = new ArrayList<>();
-        for (int i = 0; i < strings.length; i++) {
-            floatList.add(Float.valueOf(strings[i]));
-        }
-        return floatList;
-    }
-
-    void getLabels(String[] strings, List<Float> floatvalues) {
-        for (int i = 0; i < strings.length; i++) {
-            if (strings[i].contains("1.0")) {
-                Valuedataset d1 = new Valuedataset(floatvalues.get(0), String.valueOf(i), allColumnNamesY[i], floatvalues.subList(1, floatvalues.size()));
-                this.listAllXY.add(d1);
-            }
-        }
-
     }
 }
 

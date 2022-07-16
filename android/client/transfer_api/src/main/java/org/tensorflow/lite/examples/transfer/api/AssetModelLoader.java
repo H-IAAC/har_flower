@@ -31,18 +31,18 @@ import java.nio.channels.FileChannel.MapMode;
 public class AssetModelLoader implements ModelLoader {
   private final String experiment;
   private AssetManager assetManager;
-  private String directoryName;
-private String folder="fold_";
+  private String directoryName="model";
+private String folder="tflite_model";
   /**
    * Create a loader for a transfer learning model under given directory.
    *
-   * @param directoryName path to model directory in assets tree.
+   * @param folder path to model directory in assets tree.
    * @param experimentID
    */
-  public AssetModelLoader(Context context, String directoryName, String experimentID) {
-    this.directoryName = directoryName;
+  public AssetModelLoader(Context context, String folder, String experimentID) {
+    this.folder = folder;
     this.assetManager = context.getAssets();
-    this.experiment=experimentID;
+    this.experiment="";
     Log.d("Exp",this.experiment);
 
   }

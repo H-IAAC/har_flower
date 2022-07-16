@@ -12,7 +12,7 @@
         android:usesCleartextTraffic="true"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light">
-        <activity android:name="flwr.android_client.MainActivity">
+        <activity android:name="flwr.android_client.MainActivityFlower">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
