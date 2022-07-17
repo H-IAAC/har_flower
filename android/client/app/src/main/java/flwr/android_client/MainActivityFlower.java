@@ -15,6 +15,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,6 +23,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.protobuf.ByteString;
+
+import org.apache.commons.lang3.BooleanUtils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -66,11 +69,18 @@ public class MainActivityFlower extends AppCompatActivity {
         connectButton = (Button) findViewById(R.id.connect);
         trainButton = (Button) findViewById(R.id.trainFederated);
         fc = new FlowerClient(this, experimentID,manifold.isChecked());
-
+        LinearLayout linearlayoutManifold = (LinearLayout) findViewById(R.id.LinearlayoutManifold);
         manifold.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 fc = new FlowerClient(getBaseContext(), experimentID,manifold.isChecked());
+                if(manifold.isChecked()){
+                linearlayoutManifold.setVisibility(View.VISIBLE);
+            }
+                else{
+                    linearlayoutManifold.setVisibility(View.INVISIBLE);
+                }
+
             }
         });
 
