@@ -13,8 +13,7 @@ def run_client(df_path):
     config = {
         'df_path': df_path,
         'labels': labels,
-        'neurons_1' : 32, 
-        'neurons_2' : 16, 
+        'neurons_1' : 44, 
     }
     har = utils.HAR(config)
 
