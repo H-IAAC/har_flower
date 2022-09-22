@@ -1,0 +1,7 @@
+flwr = "^0.17.0"
+pandas = "^1.4.3"
+numpy = "^1.23.0"
+keras-tuner = "^1.1.2"
+scikit-multilearn = "^0.2.0"
+sklearn = "^0.0"
+tensorflow = "^2.9.1"
