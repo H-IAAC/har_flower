@@ -38,4 +38,5 @@ After installing all dependencies and build the base models (by running the note
     - the path-to-folder to search the clients' data
 
 ### Citation:
-Coming soon
+The original paper can be found in the pre-roceedings[here](https://www.sba.org.br/cba2022/wp-content/uploads/2022/10/CBA-2022-pre-proceedings-1.pdf) under the name [Toward a Federated Model for Human Context Recognition on Edge Devices](https://www.sba.org.br/cba2022/wp-content/uploads/artigos_cba2022/paper_8480.pdf).
+It still doesn't have a DOI, but it will have it soon.
